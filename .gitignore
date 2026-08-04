@@ -1,0 +1,11 @@
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Artefakty budowania
+OneSheet.app/
+*.dSYM/
+
+# macOS
+.DS_Store
