@@ -8,6 +8,10 @@ import AppKit
 @MainActor
 final class NotePanel: NSPanel {
 
+    /// Wywoływane po schowaniu panelu. Nie jest to jedyny moment zapisu — panel potrafi
+    /// stać otwarty tygodniami — ale jest to moment, w którym zapis na pewno wypada zrobić.
+    var onHide: (() -> Void)?
+
     private let editorViewController: EditorViewController
 
     /// Czy okno ma już ustaloną pozycję — z `UserDefaults` albo z pierwszego otwarcia.
@@ -62,6 +66,7 @@ final class NotePanel: NSPanel {
 
     func hide() {
         orderOut(nil)
+        onHide?()
         Log.panel.info("Panel schowany")
     }
 

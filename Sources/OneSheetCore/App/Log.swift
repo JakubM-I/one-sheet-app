@@ -7,4 +7,5 @@ enum Log {
     static let menuBar = Logger(subsystem: AppConfiguration.loggingSubsystem, category: "menubar")
     static let panel = Logger(subsystem: AppConfiguration.loggingSubsystem, category: "panel")
     static let editor = Logger(subsystem: AppConfiguration.loggingSubsystem, category: "editor")
+    static let storage = Logger(subsystem: AppConfiguration.loggingSubsystem, category: "storage")
 }

@@ -24,7 +24,7 @@ Pełne dokumenty:
 
 ```bash
 swift build                    # kompilacja
-./scripts/test.sh              # testy
+./scripts/test.sh              # testy (swift-testing) — nie `swift test`, patrz niżej
 ./scripts/bundle.sh [debug|release]   # złożenie OneSheet.app + podpis ad-hoc
 ./scripts/run.sh [debug|release]      # bundle + zabicie starej instancji + uruchomienie
 killall OneSheet               # zatrzymanie (do etapu 4 nie ma pozycji „Zakończ")
@@ -39,10 +39,14 @@ Podgląd logów na żywo:
 Pełna ścieżka `/usr/bin/log` jest konieczna — `log` to wbudowane polecenie zsh. Flaga `--info`
 też, bo wpisy poziomu `.info` nie są domyślnie wyświetlane.
 
-**`swift test` nie działa na tej maszynie** i nie próbuj go naprawiać: Command Line Tools nie
-zawierają XCTest ani swift-testing (są częścią Xcode). Testy są zwykłym programem
-wykonywalnym — harness w [Tests/OneSheetTests/TestHarness.swift](Tests/OneSheetTests/TestHarness.swift),
-rejestracja testów ręczna w `Tests/OneSheetTests/main.swift`.
+**Testy uruchamiaj przez `./scripts/test.sh`, nie przez samo `swift test`.** Biblioteka
+swift-testing (`@Test`, `#expect`, `@Suite`) jest częścią Command Line Tools, ale SwiftPM szuka
+jej tam, gdzie kładzie ją Xcode — brakujące ścieżki dokłada skrypt i tylko wtedy, gdy
+`xcode-select -p` wskazuje na Command Line Tools. Samo `swift test` skończy się błędem
+`no such module 'Testing'`.
+
+XCTest w Command Line Tools faktycznie nie ma (jest częścią Xcode) — nie pisz testów opartych
+na `import XCTest`.
 
 ## Zasady nienaruszalne
 
@@ -109,7 +113,7 @@ one-sheet/
 │       ├── MenuBar/            # NSStatusItem, panel, pozycjonowanie
 │       ├── Editor/             # NSTextView, formatowanie, skróty
 │       └── Storage/            # odczyt/zapis RTFD, autozapis, backup
-└── Tests/OneSheetTests/        # program testowy (nie target XCTest)
+└── Tests/OneSheetTests/        # testy na swift-testing (jeden plik = jeden @Suite)
 ```
 
 **Cała logika należy do `OneSheetCore`, nie do `OneSheet`.** Symbole targetu wykonywalnego

@@ -7,6 +7,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItemController: StatusItemController?
     private var notePanel: NotePanel?
+    private let noteStore = NoteStore()
 
     public override init() {
         super.init()
@@ -18,15 +19,27 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // dzięki temu binarka uruchomiona spoza pakietu `.app` zachowuje się tak samo.
         NSApp.setActivationPolicy(.accessory)
 
+        // Niewidoczne, ale bez niego w polu tekstu nie działa ani `⌘V`, ani `⌘Z`.
+        // Wyjaśnienie w `MainMenu`.
+        MainMenu.install()
+
         // Panel i edytor powstają przy starcie, a nie przy pierwszym kliknięciu:
         // otwarcie ma być samym pokazaniem gotowego okna (specyfikacja, sekcja 6).
         // Okno nie jest tu pokazywane, więc start nie odbiera fokusu innej aplikacji.
-        let editorViewController = EditorViewController()
-        let panel = NotePanel(editorViewController: editorViewController)
-        editorViewController.onCancel = { [weak panel] in
+        let editor = EditorViewController()
+        let panel = NotePanel(editorViewController: editor)
+        editor.onCancel = { [weak panel] in
             panel?.hide()
         }
+        // Właścicielem edytora jest panel — tu wystarczy referencja do samego panelu.
         notePanel = panel
+
+        // Najpierw treść, dopiero potem callbacki — wczytanie notatki nie ma prawa
+        // wyglądać jak edycja użytkownika. (`restore(...)` blokuje zdarzenia również
+        // od środka; to druga warstwa tej samej ochrony.)
+        loadNote(into: editor)
+        connectAutosave(for: editor, panel: panel)
+        observeSystemEvents()
 
         let controller = StatusItemController()
         controller.onPrimaryAction = { [weak self] in
@@ -41,12 +54,60 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
+        noteStore.flush()
         Log.app.info("Aplikacja kończy działanie")
     }
 
     private func togglePanel() {
         guard let notePanel else { return }
         notePanel.toggle(below: statusItemController?.buttonFrameOnScreen)
+    }
+
+    // MARK: - Trwałość notatki
+
+    private func loadNote(into editor: EditorViewController) {
+        let loaded = noteStore.load()
+        editor.restore(content: loaded.text, state: loaded.state)
+        Log.app.info("Notatka wczytana (\(loaded.text.length, privacy: .public) znaków)")
+    }
+
+    private func connectAutosave(for editor: EditorViewController, panel: NotePanel) {
+        editor.onTextChange = { [weak self, weak editor] in
+            guard let self, let editor else { return }
+            noteStore.scheduleSave(editor.content, state: editor.currentState)
+        }
+        editor.onStateChange = { [weak self, weak editor] in
+            guard let self, let editor else { return }
+            noteStore.scheduleStateSave(editor.currentState)
+        }
+        panel.onHide = { [weak self] in
+            self?.noteStore.flush()
+        }
+    }
+
+    /// Momenty, w których system daje ostatnią szansę na zapis.
+    ///
+    /// Powiadomienia `NSWorkspace` chodzą **własnym** centrum powiadomień, nie domyślnym —
+    /// zarejestrowanie ich w `NotificationCenter.default` kompiluje się i po cichu nic nie robi.
+    private func observeSystemEvents() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(flushNote),
+            name: NSApplication.willResignActiveNotification,
+            object: nil
+        )
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.willPowerOffNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                self,
+                selector: #selector(flushNote),
+                name: name,
+                object: nil
+            )
+        }
+    }
+
+    @objc private func flushNote() {
+        noteStore.flush()
     }
 
     // MARK: - Miejsca na kolejne etapy

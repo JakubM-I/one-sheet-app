@@ -49,4 +49,34 @@ enum AppConfiguration {
         /// Domyślny rozmiar czcionki notatki.
         static let fontSize: CGFloat = 14
     }
+
+    enum Storage {
+        /// Katalog aplikacji wewnątrz `~/Library/Application Support`.
+        static let directoryName = "OneSheet"
+
+        /// Bieżąca treść notatki. RTFD jest pakietem katalogowym, nie pojedynczym plikiem.
+        static let noteFileName = "note.rtfd"
+
+        /// Poprzednia poprawnie zapisana wersja. Nazwę przekazujemy `replaceItemAt(...)`,
+        /// które samo odkłada tu stary plik przy podmianie.
+        static let backupFileName = "note.rtfd.backup"
+
+        /// Miejsce, w którym powstaje nowa wersja przed podmianą. Stała nazwa, a nie losowa:
+        /// w katalogu ma się nigdy nie zbierać więcej niż jeden plik roboczy.
+        static let temporaryFileName = "note.rtfd.writing"
+
+        /// Pozycja kursora i przewinięcia — metadane sesji, trzymane osobno od treści.
+        static let stateFileName = "state.json"
+
+        /// Przedrostek nazwy, pod którą odkładamy nieczytelny plik notatki.
+        /// Nigdy go nie kasujemy — użytkownik ma prawo spróbować go odzyskać sam.
+        static let corruptedFilePrefix = "note.rtfd.corrupted-"
+
+        /// Cisza po ostatniej zmianie, po której treść trafia na dysk.
+        static let debounceInterval: TimeInterval = 0.7
+
+        /// Górna granica odsuwania zapisu. Bez niej nieprzerwane pisanie odsuwałoby
+        /// debounce w nieskończoność i notatka nigdy nie trafiłaby na dysk.
+        static let hardSaveLimit: TimeInterval = 5
+    }
 }

@@ -49,6 +49,9 @@ AppDelegate ─────────► StatusItemController
   Wszystkie „magiczne liczby" projektu żyją w jednym miejscu.
 - Polityka aktywacji: `NSApp.setActivationPolicy(.accessory)` + `LSUIElement = true`
   w `Info.plist`. Brak ikony w Docku, brak udziału w `⌘Tab`.
+- `MainMenu` — menu główne, którego nikt nigdy nie zobaczy (aplikacja `.accessory` nie ma paska
+  menu), a które mimo to jest konieczne: to z niego biorą się wszystkie skróty `⌘`.
+  Uzasadnienie w sekcji 3.3.
 
 ### 3.2 `MenuBar/`
 
@@ -107,27 +110,73 @@ Kod trzymany za protokołem `HotKeyRegistering`, aby dało się go podmienić be
 - Menu kontekstowe: nadpisany `menu(for:)` — do standardowego menu doklejane są pozycje
   formatowania z sekcji „Formatowanie treści" w opisie funkcjonalności.
 
-#### Obsługa skrótów formatowania
+#### Obsługa skrótów klawiszowych — ukryte menu główne
 
-Aplikacja z polityką `.accessory` i panelem nieaktywującym nie ma menu głównego, więc
-`NSMenuItem.keyEquivalent` nie zadziała. Rozwiązanie: `FormattingCommands` instaluje
-`NSEvent.addLocalMonitorForEvents(matching: .keyDown)` aktywny wyłącznie, gdy kluczowym oknem
-jest `NotePanel`. Monitor mapuje kombinacje na wywołania:
+**Sprostowanie (2026-08-04, etap 2).** Wcześniejsza wersja tej sekcji twierdziła, że aplikacja
+`.accessory` z panelem nieaktywującym nie ma menu głównego, więc `NSMenuItem.keyEquivalent`
+nie zadziała, i na tej podstawie planowała `NSEvent.addLocalMonitorForEvents`. **To była
+nieprawda i kosztowała działające `⌘V`.** Aplikacja `.accessory` faktycznie nie ma **paska**
+menu, ale `NSApplication.mainMenu` istnieje jako obiekt i `NSApplication.sendEvent(_:)`
+odpytuje go przez `performKeyEquivalent(with:)`, zanim odda zdarzenie oknu kluczowemu.
+Skróty działają, choć menu jest niewidoczne.
 
-| Skrót | Wywołanie |
-|---|---|
-| `⌘B` / `⌘I` | `NSFontManager.shared.addFontTrait(_:)` z `boldFontMask` / `italicFontMask` |
-| `⌘U` | `textView.underline(_:)` |
-| `⌃⌘K` | ręczna zmiana `.strikethroughStyle` w `NSTextStorage` |
-| `⌘+` / `⌘-` | `NSFontManager.modifyFont` z `NSSizeUpFontAction` / `NSSizeDownFontAction` |
-| `⌃⌘L` | `NSTextList` typu `.disc` na akapitach zaznaczenia |
-| `⌘{` / `⌘\|` | `alignLeft(_:)` / `alignCenter(_:)` |
-| `⌃⌘\` | usunięcie atrybutów zaznaczenia do stanu domyślnego |
-| `⌥⇧⌘V` | `pasteAsPlainText(_:)` |
+Pomiar na prawdziwym `AppDelegate` z syntetycznymi zdarzeniami klawiatury:
+
+| | bez `mainMenu` | z `mainMenu` |
+|---|---|---|
+| `⌘A` | zaznacza 0 z 15 znaków | zaznacza 15 z 15 |
+| `⌘V` | nic | wkleja z zachowaniem formatowania |
+| `⌘Z` / `⇧⌘Z` | nic | cofa i ponawia |
+
+Konsekwencja praktyczna: standardowe skróty edycyjne **nie są** wiązaniami klawiszy
+`NSTextView` (nie ma ich w `StandardKeyBinding.dict`) — pochodzą wyłącznie z pozycji menu
+„Edycja". Bez menu głównego pole tekstu przyjmuje znaki, ale nie da się w nim wkleić ani cofnąć.
+Menu kontekstowe działa niezależnie, bo to inna ścieżka: pozycje wywołują `paste(_:)`
+bezpośrednio na polu tekstu.
+
+**Etap 2** dokłada `MainMenu` z samym menu „Edycja" — cofnij, ponów, wytnij, kopiuj, wklej,
+usuń, zaznacz wszystko. Pozycje nie mają `target`; puste `target` znaczy „szukaj wykonawcy
+w łańcuchu responderów", a tam siedzi `NSTextView`. To on wykonuje akcję i on decyduje przez
+`validateUserInterfaceItem(_:)`, czy pozycja jest aktywna (`⌘V` przy pustym schowku nie zrobi nic).
+
+**Etap 3** rozszerza to samo menu o menu „Format". Rozkład na wykonawców:
+
+| Skrót | Akcja pozycji menu | Wykonawca |
+|---|---|---|
+| `⌘B` / `⌘I` | `addFontTrait:`, `tag` = maska cechy | `NSFontManager.shared` |
+| `⌘+` / `⌘-` | `modifyFont:`, `tag` = `NSSizeUpFontAction` / `NSSizeDownFontAction` | `NSFontManager.shared` |
+| `⌘U` | `underline:` | łańcuch responderów (`NSTextView`) |
+| `⌘{` / `⌘\|` | `alignLeft:` / `alignCenter:` | łańcuch responderów |
+| `⌥⇧⌘V` | `pasteAsPlainText:` | łańcuch responderów |
+| `⌃⌘K` | przekreślenie — brak standardowego selektora | `FormattingCommands` |
+| `⌃⌘L` | `NSTextList` typu `.disc` na akapitach zaznaczenia | `FormattingCommands` |
+| `⌃⌘\` | usunięcie atrybutów zaznaczenia do stanu domyślnego | `FormattingCommands` |
+
+Trzy ostatnie nie mają odpowiednika w AppKit i wymagają własnego obiektu docelowego.
+Reszta to standardowe selektory — pisanie do nich własnego kodu byłoby powielaniem AppKit-u.
+
+Te same pozycje menu budują menu kontekstowe pola tekstu, więc lista skrótów i lista pozycji
+w menu nie mogą się rozjechać.
 
 Każda zmiana atrybutów musi przechodzić przez `textStorage.beginEditing()` /
 `endEditing()` i być objęta grupą cofania (`undoManager.beginUndoGrouping()`), żeby jedno `⌘Z`
 cofało całą operację.
+
+**Pułapka przy deklarowaniu skrótów z Shiftem.** `⇧⌘Z` deklaruje się **wielką** literą przy
+masce samego `.command`:
+
+```swift
+menu.addItem(withTitle: "Ponów", action: Selector(("redo:")), keyEquivalent: "Z")
+```
+
+Zapis `keyEquivalent: "z"` z maską `[.command, .shift]` wygląda naturalniej, kompiluje się
+i **nigdy nie dopasowuje zdarzenia** — sprawdzone pomiarem. Shift jest częścią samego znaku,
+nie osobnym modyfikatorem.
+
+**Uboczny efekt, sprawdzony:** system sam dokłada do menu „Edycja" własne pozycje (dyktowanie,
+„Emoji & Symbols", AutoFill) wraz z wariantami alternatywnymi — 19 pozycji zamiast
+zadeklarowanych 9. Dzieje się to raz, przy budowie menu; po 60 zdarzeniach klawiatury liczba
+pozycji nie drgnęła. Menu i tak nie jest wyświetlane.
 
 ### 3.4 `Storage/`
 
@@ -247,5 +296,5 @@ Kluczowe wpisy `Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.
 | Panel nieaktywujący nie przyjmuje klawiatury | nie da się pisać | fallback: `NSApp.activate()` przy otwarciu panelu, kosztem odbierania fokusu innej aplikacji |
 | `RegisterEventHotKey` niedostępne / skrót zajęty | brak globalnego skrótu | wykrycie błędu rejestracji, wyłączenie funkcji i wpis w menu kontekstowym; aplikacja działa dalej przez klik w ikonę |
 | `SMAppService` odrzuca podpis ad-hoc | brak autostartu | jawny komunikat w menu; alternatywa: ręczne dodanie w Ustawieniach systemowych |
-| Lokalny monitor zdarzeń przechwytuje skróty innych aplikacji | konflikty | monitor aktywny tylko gdy `NotePanel` jest oknem kluczowym; zdarzenia nieobsłużone przepuszczane bez zmian |
+| ~~Lokalny monitor zdarzeń przechwytuje skróty innych aplikacji~~ | — | **Ryzyko zniknęło** wraz z decyzją o ukrytym menu głównym (sekcja 3.3). `performKeyEquivalent` dotyczy wyłącznie zdarzeń dostarczonych do naszej aplikacji, więc nie ma czego przechwytywać |
 | Utrata danych przy awarii w trakcie zapisu | utrata notatki | zapis atomowy + backup + plik `.corrupted` zamiast nadpisania |

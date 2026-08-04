@@ -19,10 +19,10 @@ let package = Package(
             dependencies: ["OneSheetCore"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
-        // Program testowy zamiast targetu XCTest — Command Line Tools nie zawierają
-        // ani XCTest, ani swift-testing, więc `swift test` jest niedostępne.
-        // Uruchamianie: ./scripts/test.sh
-        .executableTarget(
+        // Testy na swift-testing (`@Test`, `#expect`). Biblioteka jest częścią
+        // Command Line Tools, ale SwiftPM szuka jej tam, gdzie kładzie ją Xcode —
+        // brakujące ścieżki dokłada `scripts/test.sh`. Uruchamianie: ./scripts/test.sh
+        .testTarget(
             name: "OneSheetTests",
             dependencies: ["OneSheetCore"],
             path: "Tests/OneSheetTests",

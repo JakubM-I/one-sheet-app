@@ -26,8 +26,8 @@ z samych Command Line Tools oraz działający sposób uruchamiania testów.
 | `scripts/bundle.sh` | składanie `OneSheet.app` z binarki |
 | `scripts/run.sh` | bundle + restart aplikacji |
 | `scripts/test.sh` | uruchomienie programu testowego |
-| `Tests/OneSheetTests/TestHarness.swift` | własny mini-framework testowy |
-| `Tests/OneSheetTests/main.swift` | rejestr testów |
+| `Tests/OneSheetTests/TestHarness.swift` | własny mini-framework testowy — *skasowany 2026-08-04, patrz sprostowanie w sekcji 4* |
+| `Tests/OneSheetTests/main.swift` | rejestr testów — *jw.* |
 
 ## 3. Jak to działa — mechanizmy
 
@@ -125,6 +125,15 @@ z samych Command Line Tools oraz działający sposób uruchamiania testów.
 ## 4. Decyzje i odstępstwa od planu
 
 ### Odstępstwo 1: własny harness testowy zamiast `swift test`
+
+> **Sprostowanie z 2026-08-04 (po etapie 1): ta diagnoza była błędna i decyzja została wycofana.**
+> Command Line Tools **zawierają** swift-testing. `no such module 'Testing'` nie znaczyło „nie ma
+> biblioteki", tylko „kompilator nie dostał ścieżki do niej" — SwiftPM szuka jej w katalogu Xcode,
+> a CLT trzymają ją w `Library/Developer/Frameworks/`. Po dołożeniu ścieżek w `scripts/test.sh`
+> `swift test` działa i harness został skasowany. Szczegóły w rejestrze decyzji
+> [WORKFLOW.md](../WORKFLOW.md). Poniższy opis zostawiony jako zapis tego, co wiedzieliśmy
+> w etapie 0 — nauka na przyszłość: „moduł nie istnieje" i „linker go nie widzi" to ten sam
+> komunikat błędu.
 
 Command Line Tools **nie zawierają** frameworku XCTest ani biblioteki swift-testing — obie są
 częścią Xcode. Sprawdzone jedno po drugim: `import XCTest` → `no such module 'XCTest'`,

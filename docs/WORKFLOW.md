@@ -27,7 +27,7 @@ Legenda statusów: `⬜ do zrobienia` · `🟨 w toku` · `✅ ukończony`
 - struktura katalogów zgodna z CLAUDE.md
 - `Resources/Info.plist` z `LSUIElement`
 - `scripts/bundle.sh`, `scripts/run.sh`, `scripts/test.sh`
-- własny harness testowy (Command Line Tools nie mają XCTest — patrz rejestr decyzji)
+- ~~własny harness testowy~~ — zastąpiony przez swift-testing 2026-08-04, patrz rejestr decyzji
 - `AppDelegate` + `StatusItemController` z ikoną SF Symbol `note.text`
 - klik w ikonę wypisuje wpis do `os.Logger` (jeszcze bez panelu)
 - ~~`.gitignore`~~ — utworzony wcześniej, przed inicjalizacją repozytorium
@@ -84,7 +84,7 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
 
 ---
 
-## Etap 2 — Trwałość ⬜
+## Etap 2 — Trwałość 🟨 (kod gotowy, czeka na weryfikację ręczną)
 
 **Cel:** treść przeżywa zamknięcie aplikacji.
 
@@ -99,13 +99,25 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
 - testy jednostkowe warstwy `Storage`
 
 **Definicja ukończenia**
-- wpisany tekst po `killall -9 OneSheet` (1 s po wpisaniu) jest na miejscu — również wtedy,
-  gdy panel przez cały czas pozostawał otwarty (zamknięcie panelu przestało być gwarantem zapisu)
-- ręczne uszkodzenie `note.rtfd` powoduje odtworzenie z backupu, nie utratę treści
-- ponowne otwarcie panelu przywraca pozycję kursora i przewinięcia
-- `swift test` zielony
+- ✅ `swift build` od zera bez ostrzeżeń, `./scripts/test.sh` — 27 testów przechodzi
+- ✅ wpisany tekst po `SIGKILL` (1,3 s po wpisaniu, bez żadnego `flush`) jest na miejscu —
+  sprawdzone na jednorazowym stanowisku testowym uruchamiającym prawdziwy `AppDelegate`
+- ✅ uszkodzenie `note.rtfd` powoduje odtworzenie z kopii zapasowej, a uszkodzony plik trafia
+  do `note.rtfd.corrupted-<ts>` zamiast zniknąć — sprawdzone na stanowisku testowym
+- ✅ ponowne uruchomienie przywraca treść, zaznaczenie i przewinięcie — sprawdzone na
+  stanowisku testowym (przewinięcie z dokładnością do ~2,5%, patrz podsumowanie)
+- ✅ treść przeżywa `killall -9` przy panelu otwartym przez cały czas — potwierdzone przez
+  użytkownika 2026-08-04
+- ✅ wklejony fragment zachowuje formatowanie po restarcie aplikacji — potwierdzone
+  przez użytkownika 2026-08-04
+- ✅ skróty `⌘V`, `⌘C`, `⌘X`, `⌘A`, `⌘Z`, `⇧⌘Z` działają w polu tekstu (defekt wykryty
+  przy weryfikacji etapu, naprawiony przez `MainMenu` — patrz rejestr decyzji)
+- ⬜ treść przeżywa pełny restart Maca (ścieżka `willPowerOffNotification`)
 
-**Weryfikacja ręczna:** wpisz zdanie, `killall -9 OneSheet`, uruchom ponownie. Powtórz z restartem Maca.
+**Weryfikacja ręczna:** wpisz zdanie, odczekaj sekundę, `killall -9 OneSheet`, uruchom ponownie.
+Powtórz bez zamykania panelu i z restartem Maca.
+
+**Podsumowanie:** [podsumowania/etap_2_podsumowanie.md](podsumowania/etap_2_podsumowanie.md)
 
 ---
 
@@ -113,16 +125,24 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
 
 **Cel:** jedyna funkcja aplikacji poza pisaniem.
 
-**Zakres**
-- `FormattingCommands` — lokalny monitor `keyDown` aktywny tylko dla `NotePanel`
-- pełna tabela skrótów z sekcji 3.3 specyfikacji
-- menu kontekstowe z tymi samymi operacjami
+**Zakres** — przepisany 2026-08-04 po ustaleniu z etapu 2, że ukryte menu główne działa
+(patrz rejestr decyzji i sekcja 3.3 specyfikacji). Zamiast lokalnego monitora `keyDown`:
+
+- rozszerzenie `MainMenu` o menu „Format" z pełną tabelą skrótów z sekcji 3.3 specyfikacji
+- standardowe selektory tam, gdzie AppKit je ma (`addFontTrait:`, `modifyFont:`, `underline:`,
+  `alignLeft:`, `alignCenter:`, `pasteAsPlainText:`) — bez pisania własnego kodu
+- `FormattingCommands` jako obiekt docelowy dla trzech operacji bez odpowiednika w AppKit:
+  przekreślenie (`⌃⌘K`), lista punktowana (`⌃⌘L`), usunięcie formatowania (`⌃⌘\`)
+- menu kontekstowe budowane z **tych samych** pozycji, żeby lista skrótów i lista pozycji
+  nie mogły się rozjechać
 - grupowanie operacji w `undoManager`, żeby jedno `⌘Z` cofało całą zmianę
-- wklejanie z formatowaniem i `⌥⇧⌘V` bez formatowania
+- `⌥⇧⌘V` — wklejenie bez formatowania (zwykłe `⌘V` działa od etapu 2)
 - kolory tekstu wiązane z `.labelColor` — poprawne po zmianie motywu
 
 **Definicja ukończenia**
 - każdy skrót z tabeli działa na zaznaczeniu i na `typingAttributes`
+- **każda operacja formatowania wyzwala autozapis** — bezpośrednia mutacja `NSTextStorage`
+  nie powiadamia delegata pola tekstu, więc pogrubienie mogłoby przepaść przy restarcie
 - `⌘Z` cofa pojedynczą operację formatowania w całości
 - wklejenie fragmentu z Safari zachowuje pogrubienia i kursywę
 - żaden skrót nie działa, gdy panel jest zamknięty (sprawdź `⌘B` w innej aplikacji)
@@ -200,3 +220,10 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-04 | 0 | Podział na bibliotekę `OneSheetCore` + wykonywalny `OneSheet` | symbole targetu wykonywalnego nie linkują się do programu testowego — bez podziału kod jest nietestowalny |
 | 2026-08-04 | 1 | Zaokrąglenie rogów zostawione systemowi zamiast `cornerRadius = 12` na `NSVisualEffectView` | okno `.titled` jest już przycinane do kształtu okna, a macOS 26 ma własny promień; ręczne 12 pt obcinałoby zawartość wewnątrz zaokrąglonego okna (jasny włos przy krawędzi albo podwójny łuk). Wygląd potwierdzony wizualnie 2026-08-04 — decyzja ostateczna |
 | 2026-08-04 | 1 | Geometria panelu wydzielona do `PanelGeometry` | program testowy działa bez serwera okien; bez wydzielenia pozycjonowanie byłoby weryfikowalne wyłącznie okiem |
+| 2026-08-04 | 2 | `NoteStore.load()` zwraca `LoadedNote` (treść + stan), nie samo `NSAttributedString` | szkic API w specyfikacji powstał przed decyzją o `state.json`; pozycja kursora jest potrzebna dokładnie w tym samym momencie co treść |
+| 2026-08-04 | 2 | Osobne `scheduleSave(_:state:)` i `scheduleStateSave(_:)` | przewijanie długiej notatki generuje dziesiątki zdarzeń na sekundę; wspólna droga oznaczałaby ponowną serializację całego RTFD przy każdym ruchu kółka myszy |
+| 2026-08-04 | 2 | Przewinięcie przywracane przy pierwszym pokazaniu panelu, nie przy wczytaniu notatki | TextKit 2 rozkłada tekst leniwie — dopóki panel nie był pokazany, `NSTextView` ma wysokość kilkuset punktów i przewinięcie o 6000 pt zostaje przycięte |
+| 2026-08-04 | 2 | **Sprostowanie specyfikacji, sekcja 3.3**: aplikacja `.accessory` **ma** działające `NSMenuItem.keyEquivalent` | zdanie o braku menu głównego było błędne i kosztowało działające `⌘V`, `⌘C`, `⌘X`, `⌘A`, `⌘Z`. Aplikacja nie ma **paska** menu, ale `NSApp.mainMenu` istnieje jako obiekt i `sendEvent(_:)` odpytuje go przez `performKeyEquivalent`. Pomiar: bez menu `⌘A` zaznacza 0 z 15 znaków, z menu — 15 z 15 |
+| 2026-08-04 | 2 | Dołożenie `MainMenu` (menu „Edycja") poza pierwotnym zakresem etapu 2 | skróty edycyjne są w zakresie z FUNKCJONALNOSCI sekcja 3, a bez nich nie da się przejść kryterium „wklej fragment z Safari" z klawiatury. Naprawa defektu, nie nowa funkcja |
+| 2026-08-04 | 3 | Etap 3 przepisany z lokalnego monitora `keyDown` na rozszerzenie ukrytego menu głównego | konsekwencja sprostowania powyżej. Zysk: standardowe selektory AppKit zamiast własnego kodu, jedno źródło dla skrótów i menu kontekstowego, oraz zniknięcie ryzyka „monitor przechwytuje skróty innych aplikacji" z sekcji 8 specyfikacji |
+| 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |
