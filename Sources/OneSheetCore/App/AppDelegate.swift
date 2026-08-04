@@ -6,6 +6,7 @@ import AppKit
 public final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItemController: StatusItemController?
+    private var notePanel: NotePanel?
 
     public override init() {
         super.init()
@@ -16,6 +17,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Ustawiamy to również w kodzie, a nie tylko przez `LSUIElement` w Info.plist —
         // dzięki temu binarka uruchomiona spoza pakietu `.app` zachowuje się tak samo.
         NSApp.setActivationPolicy(.accessory)
+
+        // Panel i edytor powstają przy starcie, a nie przy pierwszym kliknięciu:
+        // otwarcie ma być samym pokazaniem gotowego okna (specyfikacja, sekcja 6).
+        // Okno nie jest tu pokazywane, więc start nie odbiera fokusu innej aplikacji.
+        let editorViewController = EditorViewController()
+        let panel = NotePanel(editorViewController: editorViewController)
+        editorViewController.onCancel = { [weak panel] in
+            panel?.hide()
+        }
+        notePanel = panel
 
         let controller = StatusItemController()
         controller.onPrimaryAction = { [weak self] in
@@ -33,12 +44,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         Log.app.info("Aplikacja kończy działanie")
     }
 
-    // MARK: - Miejsca na kolejne etapy
-
-    /// Etap 1: otwarcie/zamknięcie panelu z notatnikiem.
     private func togglePanel() {
-        Log.app.info("togglePanel() — panel powstaje w etapie 1")
+        guard let notePanel else { return }
+        notePanel.toggle(below: statusItemController?.buttonFrameOnScreen)
     }
+
+    // MARK: - Miejsca na kolejne etapy
 
     /// Etap 4: menu z pozycjami „Uruchamiaj przy logowaniu" i „Zakończ".
     private func showContextMenu() {

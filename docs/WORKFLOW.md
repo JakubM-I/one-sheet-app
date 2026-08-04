@@ -17,7 +17,7 @@ Legenda statusów: `⬜ do zrobienia` · `🟨 w toku` · `✅ ukończony`
 
 ---
 
-## Etap 0 — Szkielet i pakowanie ✅
+## Etap 0 — Szkielet i pakowanie ✅ (zweryfikowany)
 
 **Cel:** z pustego katalogu do ikony w belce systemowej.
 
@@ -37,8 +37,8 @@ Legenda statusów: `⬜ do zrobienia` · `🟨 w toku` · `✅ ukończony`
 - ✅ `./scripts/test.sh` — 4 testy przechodzą
 - ✅ `./scripts/run.sh` uruchamia aplikację
 - ✅ aplikacja działa jako proces tła (`background only` = `true`), brak ikony w Docku i `⌘Tab`
-- ⬜ ikona jest widoczna w belce i poprawnie wygląda w jasnym i ciemnym motywie — **wymaga oczu**
-- ⬜ kliknięcia lewym i prawym przyciskiem trafiają do logu — **wymaga oczu**
+- ✅ ikona jest widoczna w belce i poprawnie wygląda w jasnym i ciemnym motywie — potwierdzone 2026-08-04
+- ✅ kliknięcia lewym i prawym przyciskiem trafiają do logu — potwierdzone 2026-08-04
 
 **Weryfikacja ręczna:** uruchom, spójrz na belkę, kliknij ikonę oboma przyciskami przy otwartym
 podglądzie logów, przełącz motyw systemu, zamknij przez `killall OneSheet`.
@@ -47,7 +47,7 @@ podglądzie logów, przełącz motyw systemu, zamknij przez `killall OneSheet`.
 
 ---
 
-## Etap 1 — Panel z edytorem ⬜
+## Etap 1 — Panel z edytorem ✅ (zweryfikowany)
 
 **Cel:** kliknięcie ikony rozwija okno, w którym można pisać.
 
@@ -63,15 +63,24 @@ podglądzie logów, przełącz motyw systemu, zamknij przez `killall OneSheet`.
 - zapamiętywanie rozmiaru i pozycji (`setFrameAutosaveName`)
 
 **Definicja ukończenia**
-- panel otwiera się pod ikoną, także gdy ikona jest przy prawej krawędzi ekranu
-- da się pisać bez klikania w pole tekstu
-- panel da się przeskalować, nowy rozmiar przeżywa restart aplikacji
-- **panel pozostaje otwarty** po kliknięciu w inną aplikację, przełączeniu `⌘Tab`
-  i przejściu na inne biurko
-- panel nie znika w trakcie pisania i nie kradnie fokusu innym aplikacjom przy starcie
+- ✅ `swift build` bez ostrzeżeń, `./scripts/test.sh` — 11 testów przechodzi
+- ✅ przycinanie ramki do ekranu (prawa i lewa krawędź, panel większy od ekranu, ramka po
+  odłączonym monitorze) — pokryte testami `PanelGeometry`
+- ✅ panel staje się oknem kluczowym, a pierwszym responderem jest `NSTextView` — sprawdzone
+  jednorazowym programem tworzącym prawdziwe okno
+- ✅ panel otwiera się pod ikoną, także gdy ikona jest przy prawej krawędzi ekranu — potwierdzone 2026-08-04
+- ✅ da się pisać bez klikania w pole tekstu — potwierdzone 2026-08-04
+- ✅ panel da się przeskalować, nowy rozmiar przeżywa restart aplikacji — potwierdzone 2026-08-04
+- ✅ **panel pozostaje otwarty** po kliknięciu w inną aplikację, przełączeniu `⌘Tab`
+  i przejściu na inne biurko — potwierdzone 2026-08-04
+- ✅ panel nie znika w trakcie pisania i nie kradnie fokusu innym aplikacjom przy starcie — potwierdzone 2026-08-04
+- ✅ wygląd: rozmycie tła, rogi okna, jasny i ciemny motyw — potwierdzone 2026-08-04
 
-**Ryzyko etapu:** panel nieaktywujący może nie przyjmować klawiatury — jeśli tak, zastosuj plan
-awaryjny z sekcji 8 specyfikacji i odnotuj to w tym pliku.
+**Ryzyko etapu — nie zmaterializowało się.** Panel nieaktywujący (`.nonactivatingPanel`) przyjmuje
+klawiaturę bez aktywowania aplikacji. Plan awaryjny z sekcji 8 specyfikacji (`NSApp.activate()`
+przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
+
+**Podsumowanie:** [podsumowania/etap_1_podsumowanie.md](podsumowania/etap_1_podsumowanie.md)
 
 ---
 
@@ -189,3 +198,5 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-04 | — | Podsumowanie edukacyjne po każdym etapie w `docs/podsumowania/` | dokumentacja ma uczyć, jak działa własna aplikacja, nie tylko raportować postęp |
 | 2026-08-04 | 0 | Własny harness testowy zamiast `swift test` | Command Line Tools nie zawierają XCTest ani swift-testing; alternatywą było 10 GB Xcode dla kilkunastu asercji |
 | 2026-08-04 | 0 | Podział na bibliotekę `OneSheetCore` + wykonywalny `OneSheet` | symbole targetu wykonywalnego nie linkują się do programu testowego — bez podziału kod jest nietestowalny |
+| 2026-08-04 | 1 | Zaokrąglenie rogów zostawione systemowi zamiast `cornerRadius = 12` na `NSVisualEffectView` | okno `.titled` jest już przycinane do kształtu okna, a macOS 26 ma własny promień; ręczne 12 pt obcinałoby zawartość wewnątrz zaokrąglonego okna (jasny włos przy krawędzi albo podwójny łuk). Wygląd potwierdzony wizualnie 2026-08-04 — decyzja ostateczna |
+| 2026-08-04 | 1 | Geometria panelu wydzielona do `PanelGeometry` | program testowy działa bez serwera okien; bez wydzielenia pozycjonowanie byłoby weryfikowalne wyłącznie okiem |

@@ -7,11 +7,21 @@ import AppKit
 @MainActor
 final class StatusItemController {
 
-    /// Wywoływane lewym kliknięciem — w etapie 1 podepniemy tu otwieranie panelu.
+    /// Wywoływane lewym kliknięciem — otwarcie lub schowanie panelu.
     var onPrimaryAction: (() -> Void)?
 
     /// Wywoływane prawym kliknięciem lub `⌃`+kliknięciem — w etapie 4 menu kontekstowe.
     var onSecondaryAction: (() -> Void)?
+
+    /// Prostokąt ikony we współrzędnych ekranu — punkt zaczepienia panelu.
+    ///
+    /// `NSStatusItem.button` żyje we własnym oknie systemowym, tworzonym przez belkę.
+    /// Droga do współrzędnych ekranu prowadzi więc przez to okno; `nil` oznacza,
+    /// że pozycji w belce nie udało się utworzyć.
+    var buttonFrameOnScreen: NSRect? {
+        guard let button = statusItem.button, let window = button.window else { return nil }
+        return window.convertToScreen(button.convert(button.bounds, to: nil))
+    }
 
     private let statusItem: NSStatusItem
 
