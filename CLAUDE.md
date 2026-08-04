@@ -23,13 +23,26 @@ Pełne dokumenty:
 ## Komendy
 
 ```bash
-swift build                    # kompilacja binarki
-./scripts/bundle.sh            # złożenie OneSheet.app z binarki + Info.plist + ikony
-./scripts/run.sh               # bundle + zabicie starej instancji + uruchomienie
-swift test                     # testy jednostkowe
+swift build                    # kompilacja
+./scripts/test.sh              # testy
+./scripts/bundle.sh [debug|release]   # złożenie OneSheet.app + podpis ad-hoc
+./scripts/run.sh [debug|release]      # bundle + zabicie starej instancji + uruchomienie
+killall OneSheet               # zatrzymanie (do etapu 4 nie ma pozycji „Zakończ")
 ```
 
-Skryptów nie ma jeszcze na etapie 0 — powstają w etapie 0 zgodnie z workflow.
+Podgląd logów na żywo:
+
+```bash
+/usr/bin/log stream --info --predicate 'subsystem == "com.kubam.OneSheet"'
+```
+
+Pełna ścieżka `/usr/bin/log` jest konieczna — `log` to wbudowane polecenie zsh. Flaga `--info`
+też, bo wpisy poziomu `.info` nie są domyślnie wyświetlane.
+
+**`swift test` nie działa na tej maszynie** i nie próbuj go naprawiać: Command Line Tools nie
+zawierają XCTest ani swift-testing (są częścią Xcode). Testy są zwykłym programem
+wykonywalnym — harness w [Tests/OneSheetTests/TestHarness.swift](Tests/OneSheetTests/TestHarness.swift),
+rejestracja testów ręczna w `Tests/OneSheetTests/main.swift`.
 
 ## Zasady nienaruszalne
 
@@ -87,15 +100,22 @@ one-sheet/
 │   ├── SPECYFIKACJA.md         # architektura i decyzje
 │   ├── WORKFLOW.md             # etapy i rejestr decyzji
 │   └── podsumowania/           # raport po każdym ukończonym etapie
-├── scripts/                    # bundle.sh, run.sh, ikona
-├── Sources/OneSheet/
-│   ├── App/                    # AppDelegate, cykl życia, konfiguracja
-│   ├── MenuBar/                # NSStatusItem, panel, pozycjonowanie
-│   ├── Editor/                 # NSTextView, formatowanie, skróty
-│   ├── Storage/                # odczyt/zapis RTFD, autozapis, backup
-│   └── Resources/              # Info.plist, ikony
-└── Tests/OneSheetTests/
+├── scripts/                    # test.sh, bundle.sh, run.sh, ikona
+├── Resources/Info.plist        # wkładany do pakietu przez bundle.sh
+├── Sources/
+│   ├── OneSheet/main.swift     # punkt wejścia, kilka linii
+│   └── OneSheetCore/           # cały kod aplikacji
+│       ├── App/                # AppDelegate, cykl życia, konfiguracja, logowanie
+│       ├── MenuBar/            # NSStatusItem, panel, pozycjonowanie
+│       ├── Editor/             # NSTextView, formatowanie, skróty
+│       └── Storage/            # odczyt/zapis RTFD, autozapis, backup
+└── Tests/OneSheetTests/        # program testowy (nie target XCTest)
 ```
+
+**Cała logika należy do `OneSheetCore`, nie do `OneSheet`.** Symbole targetu wykonywalnego
+nie są eksportowane, więc kod umieszczony w `Sources/OneSheet/` staje się nietestowalny.
+`main.swift` ma pozostać kilkulinijkowy. Publiczny jest wyłącznie `AppDelegate` — reszta
+biblioteki zostaje wewnętrzna, a testy sięgają do niej przez `@testable import`.
 
 ## Jak weryfikować zmiany
 

@@ -17,26 +17,33 @@ Legenda statusów: `⬜ do zrobienia` · `🟨 w toku` · `✅ ukończony`
 
 ---
 
-## Etap 0 — Szkielet i pakowanie ⬜
+## Etap 0 — Szkielet i pakowanie ✅
 
 **Cel:** z pustego katalogu do ikony w belce systemowej.
 
 **Zakres**
-- `Package.swift` — target `OneSheet`, platforma macOS 26, Swift 6, zero zależności
+- `Package.swift` — biblioteka `OneSheetCore` + wykonywalny `OneSheet` + program testowy,
+  platforma macOS 26, Swift 6, zero zależności
 - struktura katalogów zgodna z CLAUDE.md
-- `Sources/OneSheet/Resources/Info.plist` z `LSUIElement`
-- `scripts/bundle.sh` i `scripts/run.sh`
+- `Resources/Info.plist` z `LSUIElement`
+- `scripts/bundle.sh`, `scripts/run.sh`, `scripts/test.sh`
+- własny harness testowy (Command Line Tools nie mają XCTest — patrz rejestr decyzji)
 - `AppDelegate` + `StatusItemController` z ikoną SF Symbol `note.text`
 - klik w ikonę wypisuje wpis do `os.Logger` (jeszcze bez panelu)
 - ~~`.gitignore`~~ — utworzony wcześniej, przed inicjalizacją repozytorium
 
 **Definicja ukończenia**
-- `swift build` przechodzi bez ostrzeżeń
-- `./scripts/run.sh` uruchamia aplikację, ikona jest w belce
-- brak ikony w Docku, aplikacja nie występuje w `⌘Tab`
-- ikona poprawnie wygląda w jasnym i ciemnym motywie
+- ✅ `swift build` przechodzi bez ostrzeżeń
+- ✅ `./scripts/test.sh` — 4 testy przechodzą
+- ✅ `./scripts/run.sh` uruchamia aplikację
+- ✅ aplikacja działa jako proces tła (`background only` = `true`), brak ikony w Docku i `⌘Tab`
+- ⬜ ikona jest widoczna w belce i poprawnie wygląda w jasnym i ciemnym motywie — **wymaga oczu**
+- ⬜ kliknięcia lewym i prawym przyciskiem trafiają do logu — **wymaga oczu**
 
-**Weryfikacja ręczna:** uruchom, spójrz na belkę, przełącz motyw systemu, zamknij przez `killall OneSheet`.
+**Weryfikacja ręczna:** uruchom, spójrz na belkę, kliknij ikonę oboma przyciskami przy otwartym
+podglądzie logów, przełącz motyw systemu, zamknij przez `killall OneSheet`.
+
+**Podsumowanie:** [podsumowania/etap_0_podsumowanie.md](podsumowania/etap_0_podsumowanie.md)
 
 ---
 
@@ -180,3 +187,5 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-04 | — | `NSPanel` zamiast `NSPopover` | wymagane skalowanie okna przy wklejaniu długich treści |
 | 2026-08-04 | — | Panel nie chowa się przy utracie aktywności (`hidesOnDeactivate = false`) | notatnik ma móc stać otwarty obok innej aplikacji; zamyka go tylko świadoma akcja |
 | 2026-08-04 | — | Podsumowanie edukacyjne po każdym etapie w `docs/podsumowania/` | dokumentacja ma uczyć, jak działa własna aplikacja, nie tylko raportować postęp |
+| 2026-08-04 | 0 | Własny harness testowy zamiast `swift test` | Command Line Tools nie zawierają XCTest ani swift-testing; alternatywą było 10 GB Xcode dla kilkunastu asercji |
+| 2026-08-04 | 0 | Podział na bibliotekę `OneSheetCore` + wykonywalny `OneSheet` | symbole targetu wykonywalnego nie linkują się do programu testowego — bez podziału kod jest nietestowalny |
