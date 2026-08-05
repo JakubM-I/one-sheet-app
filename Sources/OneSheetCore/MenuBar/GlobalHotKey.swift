@@ -12,8 +12,11 @@ final class GlobalHotKey: HotKeyRegistering {
 
     enum RegistrationError: Error {
         case handlerInstallation(OSStatus)
-        /// Typowy status: `eventHotKeyExistsErr` (-9878) — kombinacja zajęta
-        /// przez inną aplikację.
+        /// Uwaga: kombinacja zajęta przez **inną aplikację** nie kończy się tym błędem —
+        /// system dopuszcza duplikaty między procesami i zwraca `noErr` (pomiar z etapu 4,
+        /// rejestr decyzji). `eventHotKeyExistsErr` (-9878) dotyczy wyłącznie duplikatu
+        /// w obrębie tego samego procesu; ta ścieżka to zabezpieczenie na wypadek
+        /// awarii samego API.
         case registration(OSStatus)
     }
 

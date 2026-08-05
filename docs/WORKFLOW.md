@@ -217,22 +217,53 @@ i włącz autostart z menu, na końcu zrestartuj Maca i sprawdź, że ikona wró
 
 ---
 
-## Etap 5 — Hardening ⬜
+## Etap 5 — Hardening ✅ (czeka na weryfikację ręczną)
 
 **Cel:** aplikacja, której można zaufać z jedynym egzemplarzem swoich notatek.
 
 **Zakres**
-- test z notatką 50 000 i 200 000 znaków: otwarcie, przewijanie, zapis
-- profilowanie czasu otwarcia panelu (cel <150 ms)
-- przegląd wszystkich ścieżek błędu w `NoteStore` — żadna nie może kończyć się utratą danych
-- zachowanie przy dwóch monitorach i po zmianie rozdzielczości
-- zachowanie przy przełączaniu Spaces i w trybie pełnoekranowym innej aplikacji
-- usunięcie martwego kodu, ujednolicenie logowania
+- test z notatką 50 000 i 200 000 znaków: otwarcie, przewijanie, zapis — testy `LongNoteTests`
+  + stanowisko `scripts/longnote_stand.sh` (odizolowany katalog danych, prawdziwa notatka
+  nietknięta)
+- profilowanie czasu otwarcia panelu (cel <150 ms) — pomiar w `NotePanel.present` (wpis
+  w logu) + bramkowana suita `PanelOpenPerfTests` (`ONESHEET_PANEL_PERF=1 ./scripts/test.sh`)
+- przegląd wszystkich ścieżek błędu w `NoteStore` — żadna nie może kończyć się utratą danych;
+  wnioski i nowe testy w `NoteStoreErrorPathTests`
+- zachowanie przy dwóch monitorach i po zmianie rozdzielczości — dopisana korekta ramki
+  na `didChangeScreenParametersNotification` (panel otwarty na odłączanym monitorze)
+- zachowanie przy przełączaniu Spaces i w trybie pełnoekranowym innej aplikacji —
+  konfiguracja z etapu 1, do potwierdzenia ręcznie
+- usunięcie martwego kodu, ujednolicenie logowania — przegląd nie znalazł martwego kodu
+  ani `print`; poprawiony nieaktualny komentarz w `GlobalHotKey` (sprostowanie z etapu 4)
 
 **Definicja ukończenia**
-- wszystkie kryteria akceptacji z [FUNKCJONALNOSCI.md](FUNKCJONALNOSCI.md) spełnione i sprawdzone
-- brak ostrzeżeń kompilatora
-- `swift test` zielony
+- ✅ czysta przebudowa od zera bez ostrzeżeń, `./scripts/test.sh` — 59 testów przechodzi
+- ✅ zapis/odczyt RTFD zmierzony: 200 000 znaków — 6,2 ms / 7,3 ms; 50 000 — 1,7 ms / 1,9 ms
+- ✅ otwarcie panelu z notatką 200 000 znaków i kursorem na końcu: pierwsze 41 ms
+  (jednorazowe rozłożenie tekstu do kursora), kolejne 3 ms — budżet 150 ms z zapasem
+- ✅ ścieżki błędu pod testami: zapis na katalogu tylko-do-odczytu nie rusza notatki,
+  zaległy zapis dokańcza sam `flush()`, osierocony plik roboczy nie blokuje zapisu,
+  kopia zapasowa rotuje, oba pliki nieczytelne → pusta kartka bez kasowania czegokolwiek,
+  kwarantanna bez kolizji nazw
+- ✅ stanowisko długiej notatki działa: aplikacja wczytała wygenerowane 200 000 znaków
+  (wpis w logu), katalog użytkownika nietknięty
+- kryteria akceptacji z [FUNKCJONALNOSCI.md](FUNKCJONALNOSCI.md): nr 3 i 4 potwierdzone
+  w etapach 2–3, nr 2 zmierzone wyżej; nr 1 (ikona po restarcie Maca) — wciąż czeka na
+  najbliższy restart; nr 5 (przewijanie 50 000+ bez zacięć) i nr 6 — patrz niżej
+- ✅ płynność przewijania notatki 200 000 znaków na stanowisku — potwierdzone przez
+  użytkownika 2026-08-05
+- ⬜ dwa monitory: panel na drugim ekranie, odłączenie monitora przy otwartym i schowanym
+  panelu, zmiana rozdzielczości przy otwartym panelu — **odłożone**: brak drugiego
+  monitora pod ręką; użytkownik sprawdzi przy weryfikacji końcowej po etapie 6
+- ⬜ Spaces i pełny ekran innej aplikacji — przy tej samej weryfikacji końcowej
+
+**Weryfikacja ręczna:** `./scripts/longnote_stand.sh`, klik w ikonę, przewiń notatkę od
+początku do końca (płynność), wpisz coś na końcu; `log stream` pokaże `Panel pokazany
+w X ms`. Potem `killall OneSheet && ./scripts/run.sh` (powrót do prawdziwej notatki),
+przełącz Spaces z otwartym panelem, wejdź inną aplikacją w pełny ekran, podłącz drugi
+monitor: otwórz panel na nim, odłącz kabel, sprawdź, że panel wskoczył na główny ekran.
+
+**Podsumowanie:** [podsumowania/etap_5_podsumowanie.md](podsumowania/etap_5_podsumowanie.md)
 
 ---
 
@@ -279,4 +310,7 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-05 | 3 | Autozapis formatowania: obok `textDidChange` nasłuch `NSTextStorage.didProcessEditingNotification` filtrowany do edycji samych atrybutów | operacje `NSFontManager` i cofnięcie formatowania mutują `NSTextStorage` bez gwarancji przejścia przez `didChangeText()`; nasłuch magazynu łapie każdą mutację atrybutów niezależnie od drogi, którą przyszła |
 | 2026-08-05 | 4 | **Sprostowanie ryzyka ze specyfikacji, sekcja 8**: „skrót zajęty przez inną aplikację" nie powoduje błędu rejestracji | pomiar: `RegisterEventHotKey` dla `⌥⌘N` w drugim procesie zwraca `noErr`, gdy OneSheet już trzyma tę kombinację — system dopuszcza duplikaty między procesami i sam rozstrzyga doręczanie. `eventHotKeyExistsErr` dotyczy tylko duplikatu w obrębie jednego procesu. Obsługa błędu zostaje jako zabezpieczenie przed awarią samego API |
 | 2026-08-05 | 4 | Ikona `AppIcon.icns` generowana skryptem `scripts/make_icon.swift` (AppKit + `iconutil`), nie ręcznie w edytorze graficznym | na maszynie nie ma Xcode ani narzędzi graficznych; `iconutil` i `NSBitmapImageRep` są częścią systemu, a wersja z generatora wystarcza do etapu 6, w którym powstanie finalna ikona |
+| 2026-08-05 | 5 | Zmienna środowiskowa `ONESHEET_DATA_DIRECTORY` przekierowuje katalog danych (`NoteFileLayout`) | stanowisko testu długiej notatki nie może ryzykować prawdziwej notatki, a podmiana `HOME` nie działa: na macOS 26 `FileManager` wyznacza katalog domowy z bazy użytkowników i ignoruje zmienną — sprawdzone pomiarem. Do tego `open` nie przekazuje zmiennych środowiskowych, stąd stanowisko uruchamia binarkę bezpośrednio |
+| 2026-08-05 | 5 | Korekta ramki panelu przy `NSApplication.didChangeScreenParametersNotification` | dotąd ramka była przycinana tylko przy pokazywaniu panelu; panel stojący otwarty na odłączanym monitorze mógł zostać poza wszystkimi ekranami. Wywoływana jest istniejąca, przetestowana `PanelGeometry.clamped(_:to:)` — zero nowej arytmetyki |
+| 2026-08-05 | 5 | Suita `PanelOpenPerfTests` bramkowana zmienną `ONESHEET_PANEL_PERF=1` | tworzy prawdziwe okno (wymaga serwera okien, miga panelem na ekranie); zwykły przebieg `./scripts/test.sh` ma pozostać bezokienny |
 | 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |

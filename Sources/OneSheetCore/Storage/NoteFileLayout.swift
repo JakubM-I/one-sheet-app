@@ -11,7 +11,18 @@ struct NoteFileLayout {
     let directory: URL
 
     /// `~/Library/Application Support/OneSheet` — układ produkcyjny.
-    static func applicationSupport() -> NoteFileLayout {
+    ///
+    /// Zmienna środowiskowa `ONESHEET_DATA_DIRECTORY` przekierowuje cały katalog danych —
+    /// używa jej wyłącznie stanowisko testowe `scripts/longnote_stand.sh` (etap 5).
+    /// Podmiana samego `HOME` nie wystarcza: na macOS 26 `FileManager` wyznacza katalog
+    /// domowy z bazy użytkowników i ignoruje zmienną środowiskową — sprawdzone pomiarem.
+    static func applicationSupport(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> NoteFileLayout {
+        if let override = environment[AppConfiguration.Storage.directoryOverrideVariable] {
+            return NoteFileLayout(directory: URL(filePath: override, directoryHint: .isDirectory))
+        }
+
         let base = FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first

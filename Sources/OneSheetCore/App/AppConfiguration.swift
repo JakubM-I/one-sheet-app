@@ -99,6 +99,10 @@ enum AppConfiguration {
         /// Nigdy go nie kasujemy — użytkownik ma prawo spróbować go odzyskać sam.
         static let corruptedFilePrefix = "note.rtfd.corrupted-"
 
+        /// Zmienna środowiskowa przekierowująca katalog danych — wyłącznie dla stanowiska
+        /// testowego (`scripts/longnote_stand.sh`). Uzasadnienie w `NoteFileLayout`.
+        static let directoryOverrideVariable = "ONESHEET_DATA_DIRECTORY"
+
         /// Cisza po ostatniej zmianie, po której treść trafia na dysk.
         static let debounceInterval: TimeInterval = 0.7
 

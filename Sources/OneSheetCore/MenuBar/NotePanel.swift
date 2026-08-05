@@ -34,6 +34,7 @@ final class NotePanel: NSPanel {
         configureWindow()
         configureContent()
         restoreFrame()
+        observeScreenChanges()
     }
 
     // Panel musi móc zostać oknem kluczowym, inaczej nie przyjmie klawiatury.
@@ -53,6 +54,10 @@ final class NotePanel: NSPanel {
     }
 
     func present(below anchor: NSRect?) {
+        // Pomiar całej drogi od wywołania do gotowości na pisanie — budżet ze specyfikacji
+        // (sekcja 6) to 150 ms. Wpis w logu pozwala złapać regresję bez profilera.
+        let start = ContinuousClock.now
+
         positionBeforeShowing(below: anchor)
 
         // `makeKeyAndOrderFront(_:)` z aplikacji nieaktywnej potrafi nie wysunąć okna
@@ -61,7 +66,13 @@ final class NotePanel: NSPanel {
         makeKey()
         editorViewController.focusText()
 
-        Log.panel.info("Panel pokazany (klucz: \(self.isKeyWindow, privacy: .public))")
+        let elapsed = start.duration(to: .now)
+        let milliseconds = Double(elapsed.components.seconds) * 1000
+            + Double(elapsed.components.attoseconds) / 1e15
+        Log.panel.info("""
+            Panel pokazany w \(milliseconds, format: .fixed(precision: 1), privacy: .public) ms \
+            (klucz: \(self.isKeyWindow, privacy: .public))
+            """)
     }
 
     func hide() {
@@ -184,5 +195,34 @@ final class NotePanel: NSPanel {
         return NSScreen.screens.first { $0.frame.intersects(anchor) }
             ?? NSScreen.main
             ?? NSScreen.screens.first
+    }
+
+    // MARK: - Zmiany układu ekranów
+
+    /// Odłączenie monitora lub zmiana rozdzielczości przy **schowanym** panelu jest już
+    /// obsłużona — `positionBeforeShowing` przycina ramkę przy każdym pokazaniu. Ta ścieżka
+    /// domyka drugą połowę: panel stojący otwarty na monitorze, który właśnie zniknął,
+    /// nie może zostać poza wszystkimi ekranami.
+    private func observeScreenChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    @objc private func screenParametersDidChange() {
+        guard isVisible else { return }
+        // `screen` bywa `nil`, gdy okno wisi poza wszystkimi ekranami — czyli dokładnie
+        // w przypadku, przed którym się bronimy. Wtedy przyciągamy do ekranu głównego.
+        guard let visibleFrame = (screen ?? NSScreen.main ?? NSScreen.screens.first)?.visibleFrame else {
+            return
+        }
+        let corrected = PanelGeometry.clamped(frame, to: visibleFrame)
+        if corrected != frame {
+            Log.panel.info("Zmiana układu ekranów — ramka panelu wsunięta w widoczny obszar")
+            setFrame(corrected, display: true)
+        }
     }
 }

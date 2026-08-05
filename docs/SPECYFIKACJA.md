@@ -209,6 +209,11 @@ przetrwa, choć nie budujemy wokół tego żadnych funkcji.
 Pozycja kursora i przewinięcia trafia do osobnego `state.json`, żeby nie mieszać metadanych
 sesji z treścią użytkownika.
 
+Zmienna środowiskowa `ONESHEET_DATA_DIRECTORY` przekierowuje cały katalog danych — używa
+jej wyłącznie stanowisko testowe `scripts/longnote_stand.sh` (etap 5). Podmiana samego
+`HOME` nie wystarcza: na macOS 26 `FileManager` wyznacza katalog domowy z bazy
+użytkowników i ignoruje tę zmienną.
+
 #### Algorytm zapisu
 
 1. Serializacja `NSAttributedString` → `FileWrapper` (na wątku głównym; dostęp do
@@ -283,6 +288,10 @@ Kluczowe wpisy `Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.
   zacięcia, pierwszym krokiem jest wyłączenie ciągłego sprawdzania pisowni, nie przepisywanie edytora.
 - Serializacja RTFD dużego dokumentu może zająć kilkadziesiąt ms — dlatego debounce, a nie zapis
   przy każdym naciśnięciu klawisza.
+- **Pomiar (2026-08-05, etap 5):** serializacja 200 000 znaków — zapis 6,2 ms, odczyt 7,3 ms
+  (50 000: 1,7 / 1,9 ms). Otwarcie panelu z notatką 200 000 znaków i kursorem na końcu:
+  pierwsze 41 ms (jednorazowe rozłożenie tekstu przez TextKit 2 do kursora), kolejne 3 ms.
+  Budżet 150 ms ma zapas rzędu wielkości; `NotePanel.present` loguje czas każdego otwarcia.
 
 ## 7. Bezpieczeństwo i prywatność
 
