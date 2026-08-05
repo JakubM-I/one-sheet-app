@@ -73,8 +73,8 @@ a przy wklejaniu długich treści to blokujące ograniczenie. Wybieramy `NSPanel
   przeżyć przełączenie na inną aplikację; chowa go wyłącznie świadoma akcja użytkownika
 - `collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]` — panel jest widoczny na
   każdym biurku i nie znika przy przejściu innej aplikacji w tryb pełnoekranowy
-- `isMovableByWindowBackground = false` (kolizja z zaznaczaniem tekstu); przesuwanie tylko
-  za górny pas 28 pt
+- `isMovableByWindowBackground = false` (kolizja z zaznaczaniem tekstu); przesuwanie za pasek
+  formatowania, który zajmuje górne 40 pt okna i sam wywołuje `performDrag(with:)`
 - `becomesKeyOnlyIfNeeded = false` — panel musi przyjmować klawiaturę bez aktywowania aplikacji
 - rozmiar i pozycja przez `setFrameAutosaveName("NotePanel")`, domyślnie 380×480 pt
 - pozycjonowanie przy pierwszym otwarciu: zaczepiony pod ikoną statusu i wyrównany do jej
@@ -108,9 +108,12 @@ Kod trzymany za protokołem `HotKeyRegistering`, aby dało się go podmienić be
 
 ### 3.3 `Editor/`
 
-- `EditorViewController` — kontener z `FormatBar` (30 pt) nad `NSScrollView` + `NSTextView`,
+- `EditorViewController` — kontener z `FormatBar` (40 pt) nad `NSScrollView` + `NSTextView`,
   wcięcie tekstu 12 pt.
-- `FormatBar` — sześć przycisków formatowania. Akcję i cel każdego bierze z
+- `FormatBar` — sześć przycisków formatowania, wyśrodkowanych w oknie. Pasek pokrywa obszar
+  niewidocznego paska tytułu (ok. 32 pt), więc jest jednocześnie uchwytem do przesuwania okna:
+  `mouseDown` przekazuje zdarzenie do `NSWindow.performDrag(with:)`. Chwycić można wszędzie
+  poza ikoną — przyciski obsługują swoje kliknięcia same. Akcję i cel każdego bierze z
   `FormatMenu.makeItems(commands:)`, a stan włączenia z `FormattingState`; własnej logiki
   formatowania nie ma. Kliknięcie przekazuje akcję przez `NSApp.sendAction(_:to:from:)`,
   więc pozycje z pustym celem trafiają w łańcuch responderów dokładnie tak, jak z menu.

@@ -30,8 +30,9 @@ tam jest.
 
 ### 2. Panel z notatnikiem
 
-- Pole tekstowe wypełniające panel, a nad nim wąski pasek sześciu przycisków formatowania
-  (patrz sekcja 4). Poza tym nic: bez tytułu, bez zakładek, bez drugiego paska narzędzi.
+- Pole tekstowe wypełniające panel, a nad nim jeden pasek z sześcioma przyciskami formatowania
+  (patrz sekcja 4). Ten sam pasek służy za uchwyt do przesuwania okna — chwytać można wszędzie
+  poza ikoną. Poza tym nic: bez tytułu, bez zakładek, bez drugiego paska narzędzi.
 - Panel jest przesuwalny i skalowalny; jego rozmiar i pozycja są zapamiętywane między
   uruchomieniami.
 - Po otwarciu kursor od razu jest w tekście, w miejscu, w którym był ostatnio.

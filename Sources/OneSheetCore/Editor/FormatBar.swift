@@ -198,6 +198,18 @@ final class FormatBar: NSView {
         refresh()
     }
 
+    // MARK: - Przeciąganie okna
+
+    /// Pasek jest jednocześnie uchwytem do przesuwania panelu.
+    ///
+    /// Leży na obszarze niewidocznego paska tytułu, a zwykły `NSView` zwraca w `hitTest`
+    /// samego siebie — gdyby nie ta metoda, pasek połknąłby przeciąganie i okna nie dałoby
+    /// się ruszyć. Przyciski obsługują swoje kliknięcia same i tu nie docierają, więc
+    /// chwycić można wszędzie poza ikoną.
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
+    }
+
     // MARK: - Stan
 
     /// Odświeżenie po zdarzeniu, które mogło zmienić formatowanie pod kursorem.

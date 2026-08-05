@@ -36,11 +36,6 @@ enum AppConfiguration {
 
         /// Odstęp między dolną krawędzią ikony w belce a górną krawędzią panelu.
         static let gapBelowStatusItem: CGFloat = 6
-
-        /// Wysokość niewidocznego paska tytułu. Panel nie jest przesuwalny za tło
-        /// (kolizja z zaznaczaniem tekstu), więc to jedyny uchwyt do przeciągania —
-        /// i dlatego edytor musi zaczynać się dopiero pod nim.
-        static let dragStripHeight: CGFloat = 28
     }
 
     enum HotKey {
@@ -82,9 +77,10 @@ enum AppConfiguration {
         /// Domyślny rozmiar czcionki notatki.
         static let fontSize: CGFloat = 14
 
-        /// Wysokość paska szybkiego formatowania nad polem tekstu. Doliczana do
-        /// `Panel.dragStripHeight` — razem odsuwają pierwszą linijkę notatki od góry okna.
-        static let formatBarHeight: CGFloat = 30
+        /// Wysokość paska formatowania. Jest to zarazem cały odstęp pierwszej linijki
+        /// notatki od górnej krawędzi okna: pasek pokrywa obszar niewidocznego paska
+        /// tytułu (ok. 32 pt) i sam służy za uchwyt do przeciągania okna.
+        static let formatBarHeight: CGFloat = 40
 
         /// Najmniejszy odstęp przycisków paska od krawędzi okna. Przyciski są wyśrodkowane,
         /// więc ta wartość działa dopiero przy oknie zwężonym do minimum.

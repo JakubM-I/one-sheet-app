@@ -311,6 +311,27 @@ kopii, zrestartuj Maca i sprawdź, że ikona wróciła sama; potem po prostu uż
 
 ---
 
+## Zmiany po zamknięciu planu
+
+Plan sześciu etapów jest zakończony. Zmiany wprowadzone później nie są etapami — nie mają
+listy kontrolnej ani kolejności — ale obowiązuje je ta sama zasada: każde odstępstwo trafia
+do rejestru decyzji, a zmiana warta wyjaśnienia dostaje podsumowanie.
+
+### Pasek formatowania — 2026-08-05
+
+Sześć przycisków nad polem tekstu, scalonych z pasem do przeciągania okna. **Zmiana zakresu:**
+`FUNKCJONALNOSCI.md` mówiło wcześniej „bez pasków narzędzi".
+
+- ✅ komplet przycisków, odzwierciedlanie stanu, kliknięcie — 8 testów w `FormatBarTests`
+- ✅ geometria i trafienia po scaleniu — pomiar `hitTest` i współrzędnych
+- ✅ działanie przycisków, wyśrodkowanie, przeciąganie okna za pasek oraz skalowanie za górną
+  krawędź — potwierdzone przez użytkownika 2026-08-05
+
+**Podsumowanie:**
+[podsumowania/dodatek_pasek_formatowania_podsumowanie.md](podsumowania/dodatek_pasek_formatowania_podsumowanie.md)
+
+---
+
 ## Rejestr decyzji
 
 Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
@@ -343,6 +364,9 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-05 | 5 | Suita `PanelOpenPerfTests` bramkowana zmienną `ONESHEET_PANEL_PERF=1` | tworzy prawdziwe okno (wymaga serwera okien, miga panelem na ekranie); zwykły przebieg `./scripts/test.sh` ma pozostać bezokienny |
 | 2026-08-05 | 6 | Bez notaryzacji i podpisu Developer ID | aplikacja jest budowana i używana na tej samej maszynie — Gatekeeper nie sprawdza lokalnych buildów; notaryzacja miałaby sens dopiero przy przenoszeniu gotowego pakietu na inny Mac, a wtedy właściwą drogą jest „sklonuj i zbuduj na miejscu" |
 | 2026-08-05 | po 6 | Pasek szybkiego formatowania nad polem tekstu — **zmiana zakresu**, FUNKCJONALNOSCI sekcja 2 mówiła „bez pasków narzędzi" | decyzja użytkownika po testach etapu 6: sześć podstawowych operacji było dostępnych wyłącznie pod skrótami i w podmenu menu kontekstowego, czyli dwa kliknięcia i celowanie w listę. Odrzucone alternatywy: pływający pasek nad zaznaczeniem (wzorzec z przeglądarki, nie z macOS; nie działa przy pustym zaznaczeniu, czyli przy włączaniu cechy przed pisaniem) oraz samo spłaszczenie menu kontekstowego (nie usuwa problemu, tylko go skraca). Granica pozostaje ostra: sześć przycisków, bez rozmiaru czcionki i wyrównania |
+| 2026-08-05 | po 6 | Pasek przeciągania i pasek ikon scalone w jeden pas 40 pt; `Panel.dragStripHeight` usunięte | dwa osobne pasy wyglądały jak niedokończony interfejs (zgłoszone przez użytkownika). Pasek formatowania leży teraz na obszarze niewidocznego paska tytułu i sam przejmuje przesuwanie okna przez `performDrag(with:)`. Chrome zmalało z 58 do 40 pt, więc panel zyskał 18 pt na tekst. Ryzyko „pasek przechwyci skalowanie za górną krawędź" sprawdzone ręcznie 2026-08-05 — nie występuje: obszar zmiany rozmiaru obsługuje ramka okna, zanim zdarzenie trafi do widoków |
+| 2026-08-05 | po 6 | **Sprostowanie założenia z etapu 1**: widok położony pod niewidocznym paskiem tytułu **dostaje** kliknięcia | komentarz przy `dragStripHeight` twierdził, że pod pasem przeciągania „nie dałoby się kliknąć" i na tej podstawie edytor był odsuwany o 28 pt. Pomiar `hitTest` od widoku ramki okna: przycisk umieszczony 6, 14 i 20 pt od górnej krawędzi (przy pasku tytułu wysokim na 32 pt) jest zwracany prawidłowo, a po scaleniu trafienia dochodzą do wszystkich sześciu ikon. Prawdą jest natomiast, że zwykły `NSView` zwraca w `hitTest` siebie i połyka przeciąganie okna — stąd jawne `performDrag` |
+| 2026-08-05 | po 6 | Odrzucone `NSToolbar` w stylu `.unifiedCompact` jako sposób scalenia pasków | byłby to natywny sposób na jeden wysoki pas, ale kosztem przebudowy chrome okna (rezygnacja z `.fullSizeContentView`, delegat toolbara, walidacja pozycji, menu dostosowywania). Pomiar trafień pokazał, że wystarczy przesunąć istniejący pasek na obszar paska tytułu — zero nowej maszynerii |
 | 2026-08-05 | po 6 | Pasek nie ma własnej logiki formatowania — bierze akcję i cel z `FormatMenu.makeItems(commands:)`, a stan z nowego `FormattingState` | trzy drogi do tej samej operacji (skrót, menu kontekstowe, przycisk) to trzy okazje do rozjazdu. Przy jednym źródle przycisk nie ma jak wykonać czegoś innego niż skrót, a podświetlenie nie ma jak pokazać czegoś innego, niż zrobi kliknięcie. `FormattingState` powstał z prywatnych predykatów `FormattingCommands` — bez wydzielenia „czy włączone" istniałoby w dwóch kopiach |
 | 2026-08-05 | 6 | `LaunchAtLogin.reconcileOnLaunch()` — naprawa rejestracji autostartu po przeniesieniu pakietu (rozszerzenie zakresu etapu) | pomiar na żywym systemie: wpis w bazie Background Task Management trzyma **ścieżkę** pakietu, `SMAppService.mainApp.status` z nowej lokalizacji dalej zwraca `.enabled` (dopasowanie po identyfikatorze), a ponowna `register()` aktualizuje wpis w miejscu (ten sam UUID, nowy URL). Bez naprawy logowanie po instalacji uruchamiałoby kopię z repozytorium. Warunki: tylko kopia w `/Applications`, tylko przy statusie `.enabled` — kopia robocza nie kradnie autostartu, a decyzja użytkownika z Ustawień systemowych zostaje uszanowana |
 | 2026-08-05 | 6 | Finalna ikona nadal z generatora, kształt maski przez `SwiftUI.RoundedRectangle(style: .continuous).path(in:)` | jedyne publiczne API oddające dokładnie superelipsę Apple; `NSBezierPath(roundedRect:)` daje rogi kołowe, widocznie „twardsze" przy pełnowymiarowej ikonie. Wersja robocza pływała małą kartką na przezroczystym tle — finalna wypełnia siatkę ikon macOS (824/1024, promień ~22,5%) |
