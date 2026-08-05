@@ -1,9 +1,9 @@
 # Etap 2 — Trwałość — podsumowanie
 
 **Data ukończenia:** 2026-08-04
-**Status:** ukończony. Weryfikacja ręczna przeszła 2026-08-04 z jednym wyjątkiem (restart Maca —
-do sprawdzenia przy okazji) i **wykryła defekt spoza warstwy trwałości**: martwe skróty `⌘`.
-Naprawione w tym samym etapie, opis w sekcji 3.
+**Data weryfikacji:** 2026-08-05
+**Status:** ukończony i zweryfikowany w całości. Weryfikacja ręczna **wykryła defekt spoza
+warstwy trwałości** — martwe skróty `⌘` — naprawiony w tym samym etapie, opis w sekcji 3.
 
 ## 1. Co powstało
 
@@ -298,13 +298,12 @@ razem z katalogiem, który zdążył utworzyć):
 2. ✅ Wklejenie sformatowanego fragmentu i restart aplikacji — formatowanie na miejscu.
    Przy okazji **wykryty defekt**: wklejanie działało wyłącznie z menu kontekstowego,
    `⌘V` nie robiło nic. Naprawione, opis w sekcji 3.
-3. ⬜ Restart Maca — do sprawdzenia przy najbliższej okazji.
+3. ✅ Pełny restart komputera (2026-08-05) — notatka wpisana poprzedniego dnia jest na miejscu
+   po ponownym uruchomieniu Maca i aplikacji. To jedyny test ścieżki `flush`
+   na `willPowerOffNotification`; nie da się go podrobić inaczej.
 4. ➖ Dokładność przewinięcia przy bardzo długiej notatce — uznane za detal, zostaje jako dług.
 
-**Zostało do sprawdzenia:**
-
-1. Restart Maca — jedyny test ścieżki `flush` na `willPowerOffNotification`.
-2. Opcjonalnie, ręczny test odzysku z kopii zapasowej:
+**Opcjonalnie, gdybyś kiedyś chciał zobaczyć odzysk z kopii na własne oczy:**
 
 ```bash
 rm -rf ~/Library/Application\ Support/OneSheet/note.rtfd && echo zepsute > ~/Library/Application\ Support/OneSheet/note.rtfd

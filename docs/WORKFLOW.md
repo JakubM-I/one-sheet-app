@@ -84,7 +84,7 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
 
 ---
 
-## Etap 2 — Trwałość 🟨 (kod gotowy, czeka na weryfikację ręczną)
+## Etap 2 — Trwałość ✅ (zweryfikowany)
 
 **Cel:** treść przeżywa zamknięcie aplikacji.
 
@@ -112,7 +112,8 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
   przez użytkownika 2026-08-04
 - ✅ skróty `⌘V`, `⌘C`, `⌘X`, `⌘A`, `⌘Z`, `⇧⌘Z` działają w polu tekstu (defekt wykryty
   przy weryfikacji etapu, naprawiony przez `MainMenu` — patrz rejestr decyzji)
-- ⬜ treść przeżywa pełny restart Maca (ścieżka `willPowerOffNotification`)
+- ✅ treść przeżywa pełny restart Maca — potwierdzone przez użytkownika 2026-08-05
+  (notatka z poprzedniego dnia na miejscu po ponownym uruchomieniu komputera i aplikacji)
 
 **Weryfikacja ręczna:** wpisz zdanie, odczekaj sekundę, `killall -9 OneSheet`, uruchom ponownie.
 Powtórz bez zamykania panelu i z restartem Maca.
