@@ -19,15 +19,16 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // dzięki temu binarka uruchomiona spoza pakietu `.app` zachowuje się tak samo.
         NSApp.setActivationPolicy(.accessory)
 
-        // Niewidoczne, ale bez niego w polu tekstu nie działa ani `⌘V`, ani `⌘Z`.
-        // Wyjaśnienie w `MainMenu`.
-        MainMenu.install()
-
         // Panel i edytor powstają przy starcie, a nie przy pierwszym kliknięciu:
         // otwarcie ma być samym pokazaniem gotowego okna (specyfikacja, sekcja 6).
         // Okno nie jest tu pokazywane, więc start nie odbiera fokusu innej aplikacji.
         let editor = EditorViewController()
         let panel = NotePanel(editorViewController: editor)
+
+        // Niewidoczne, ale bez niego w polu tekstu nie działa ani `⌘V`, ani `⌘B`.
+        // Wyjaśnienie w `MainMenu`; instalacja po utworzeniu edytora, bo menu „Format"
+        // celuje w jego `FormattingCommands`.
+        MainMenu.install(formatting: editor.formattingCommands)
         editor.onCancel = { [weak panel] in
             panel?.hide()
         }

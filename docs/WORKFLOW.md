@@ -75,6 +75,7 @@ podglądzie logów, przełącz motyw systemu, zamknij przez `killall OneSheet`.
   i przejściu na inne biurko — potwierdzone 2026-08-04
 - ✅ panel nie znika w trakcie pisania i nie kradnie fokusu innym aplikacjom przy starcie — potwierdzone 2026-08-04
 - ✅ wygląd: rozmycie tła, rogi okna, jasny i ciemny motyw — potwierdzone 2026-08-04
+  (rozmycie wycofane 2026-08-05 na rzecz jednolitego tła — patrz rejestr decyzji)
 
 **Ryzyko etapu — nie zmaterializowało się.** Panel nieaktywujący (`.nonactivatingPanel`) przyjmuje
 klawiaturę bez aktywowania aplikacji. Plan awaryjny z sekcji 8 specyfikacji (`NSApp.activate()`
@@ -122,7 +123,7 @@ Powtórz bez zamykania panelu i z restartem Maca.
 
 ---
 
-## Etap 3 — Formatowanie ⬜
+## Etap 3 — Formatowanie ✅ (czeka na weryfikację ręczną)
 
 **Cel:** jedyna funkcja aplikacji poza pisaniem.
 
@@ -141,13 +142,33 @@ Powtórz bez zamykania panelu i z restartem Maca.
 - kolory tekstu wiązane z `.labelColor` — poprawne po zmianie motywu
 
 **Definicja ukończenia**
-- każdy skrót z tabeli działa na zaznaczeniu i na `typingAttributes`
-- **każda operacja formatowania wyzwala autozapis** — bezpośrednia mutacja `NSTextStorage`
-  nie powiadamia delegata pola tekstu, więc pogrubienie mogłoby przepaść przy restarcie
-- `⌘Z` cofa pojedynczą operację formatowania w całości
-- wklejenie fragmentu z Safari zachowuje pogrubienia i kursywę
-- żaden skrót nie działa, gdy panel jest zamknięty (sprawdź `⌘B` w innej aplikacji)
-- po przełączeniu na ciemny motyw cały tekst pozostaje czytelny
+- ✅ `swift build` od zera bez ostrzeżeń, `./scripts/test.sh` — 43 testy przechodzą,
+  aplikacja startuje i wczytuje istniejącą notatkę
+- ✅ trzy operacje własne (`⌃⌘K`, `⌃⌘L`, `⌃⌘\`) działają na zaznaczeniu i na
+  `typingAttributes` — pokryte testami `FormattingCommands`; skróty standardowe
+  (`⌘B`, `⌘I`, `⌘U`, `⌘+`/`⌘-`, `⌘{`/`⌘|`, `⌥⇧⌘V`) ⬜ wymagają ręcznego sprawdzenia
+- ✅ każda operacja formatowania wyzwala autozapis — ścieżka `didChangeText()` pokryta
+  testem licznika `textDidChange`, a mutacje z jej pominięciem łapie nasłuch
+  `NSTextStorage.didProcessEditingNotification` (też pod testem)
+- ✅ jedno `⌘Z` cofa operację własną w całości — pokryte testem; cofanie operacji
+  `NSFontManager` ⬜ do sprawdzenia ręcznie
+- ✅ zgodność menu (skróty, wykonawcy, tagi) z tabelą specyfikacji — pod testem `FormatMenu`
+- ✅ przekreślenie i `NSTextList` przeżywają serializację RTFD — pod testem
+- ✅ wklejenie sformatowanego fragmentu zachowuje formatowanie, łącznie z kolorem tła
+  tekstu — potwierdzone przez użytkownika 2026-08-05
+- ✅ po przełączeniu na ciemny motyw cały tekst pozostaje czytelny — potwierdzone
+  przez użytkownika 2026-08-05
+- ✅ znaczniki listy punktowanej rysują się poprawnie — potwierdzone przez użytkownika
+  2026-08-05
+- ⬜ żaden skrót nie działa, gdy panel jest zamknięty (sprawdź `⌘B` w innej aplikacji) — ręcznie
+
+**Weryfikacja ręczna:** otwórz panel, przejdź skróty z tabeli na zaznaczeniu i przy samym
+kursorze, cofnij każdą operację jednym `⌘Z`, wklej sformatowany fragment z Safari, sprawdź
+`⌘B` w innej aplikacji przy schowanym panelu, przełącz motyw systemu, zrób listę punktowaną
+i dopisz do niej akapit Enterem, na końcu `killall -9 OneSheet` sekundę po pogrubieniu
+i sprawdź, że pogrubienie przeżyło restart.
+
+**Podsumowanie:** [podsumowania/etap_3_podsumowanie.md](podsumowania/etap_3_podsumowanie.md)
 
 ---
 
@@ -227,4 +248,8 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-04 | 2 | **Sprostowanie specyfikacji, sekcja 3.3**: aplikacja `.accessory` **ma** działające `NSMenuItem.keyEquivalent` | zdanie o braku menu głównego było błędne i kosztowało działające `⌘V`, `⌘C`, `⌘X`, `⌘A`, `⌘Z`. Aplikacja nie ma **paska** menu, ale `NSApp.mainMenu` istnieje jako obiekt i `sendEvent(_:)` odpytuje go przez `performKeyEquivalent`. Pomiar: bez menu `⌘A` zaznacza 0 z 15 znaków, z menu — 15 z 15 |
 | 2026-08-04 | 2 | Dołożenie `MainMenu` (menu „Edycja") poza pierwotnym zakresem etapu 2 | skróty edycyjne są w zakresie z FUNKCJONALNOSCI sekcja 3, a bez nich nie da się przejść kryterium „wklej fragment z Safari" z klawiatury. Naprawa defektu, nie nowa funkcja |
 | 2026-08-04 | 3 | Etap 3 przepisany z lokalnego monitora `keyDown` na rozszerzenie ukrytego menu głównego | konsekwencja sprostowania powyżej. Zysk: standardowe selektory AppKit zamiast własnego kodu, jedno źródło dla skrótów i menu kontekstowego, oraz zniknięcie ryzyka „monitor przechwytuje skróty innych aplikacji" z sekcji 8 specyfikacji |
+| 2026-08-05 | 3 | Tło panelu jednolite (`NSWindow.backgroundColor = .textBackgroundColor`, okno nieprzezroczyste) zamiast szkła `NSVisualEffectView` — **zmiana decyzji z etapu 1** | rozmycie przepuszczało zawartość spod okna i psuło czytelność notatki, zwłaszcza w jasnym motywie; zgłoszone przez użytkownika przy weryfikacji etapu 3 |
+| 2026-08-05 | 3 | Pozycje formatowania w menu kontekstowym jako podmenu „Formatowanie", nie luzem | systemowe menu kontekstowe `NSTextView` ma kilkanaście pozycji, a AppKit własne grupy (Font, Substitutions) też trzyma w podmenu; źródło pozycji pozostaje jedno (`FormatMenu`) |
+| 2026-08-05 | 3 | `usesAdaptiveColorMappingForDarkAppearance = true` — poza literalnym zakresem etapu | kryterium „po przełączeniu na ciemny motyw cały tekst pozostaje czytelny" jest nie do spełnienia dla tekstu wklejonego z jasnych stron (stały czarny kolor); mapowanie odwraca kolory tylko przy rysowaniu, w pliku zostają oryginalne |
+| 2026-08-05 | 3 | Autozapis formatowania: obok `textDidChange` nasłuch `NSTextStorage.didProcessEditingNotification` filtrowany do edycji samych atrybutów | operacje `NSFontManager` i cofnięcie formatowania mutują `NSTextStorage` bez gwarancji przejścia przez `didChangeText()`; nasłuch magazynu łapie każdą mutację atrybutów niezależnie od drogi, którą przyszła |
 | 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |

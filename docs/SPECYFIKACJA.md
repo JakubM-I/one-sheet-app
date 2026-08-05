@@ -79,8 +79,10 @@ a przy wklejaniu długich treści to blokujące ograniczenie. Wybieramy `NSPanel
 - rozmiar i pozycja przez `setFrameAutosaveName("NotePanel")`, domyślnie 380×480 pt
 - pozycjonowanie przy pierwszym otwarciu: wyśrodkowany pod ikoną statusu, z marginesem 6 pt
   poniżej belki, przycięty do widocznego obszaru ekranu (`NSScreen.visibleFrame`)
-- tło: `NSVisualEffectView` z materiałem `.popover`, `blendingMode = .behindWindow`,
-  zaokrąglenie 12 pt
+- tło: jednolite, `NSWindow.backgroundColor = .textBackgroundColor` (dynamiczny kolor tła
+  dokumentu, podąża za motywem), zaokrąglenie rogów zostawione systemowi.
+  **Zmiana 2026-08-05** — pierwotnie `NSVisualEffectView` z materiałem `.popover`
+  i `blendingMode = .behindWindow`; rozmycie psuło czytelność notatki, patrz rejestr decyzji
 
 Zamykanie — **wyłącznie trzy świadome akcje**: `Esc` (przez `cancelOperation(_:)`), ponowne
 kliknięcie ikony w belce, globalny skrót. Nie obsługujemy `windowDidResignKey` ani

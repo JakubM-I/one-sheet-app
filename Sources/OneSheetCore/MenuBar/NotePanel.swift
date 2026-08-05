@@ -97,10 +97,13 @@ final class NotePanel: NSPanel {
         // Przeciąganie za tło kolidowałoby z zaznaczaniem tekstu — zostaje górny pas.
         isMovableByWindowBackground = false
 
-        // Tło maluje `NSVisualEffectView`; okno musi być przezroczyste, żeby rozmycie
-        // sięgało zawartości pod spodem, a rogi okna nie były podbite prostokątem.
-        isOpaque = false
-        backgroundColor = .clear
+        // Jednolite tło zamiast efektu szkła (rejestr decyzji, 2026-08-05): rozmycie
+        // przepuszczało zawartość spod okna i psuło czytelność notatki, zwłaszcza
+        // w jasnym motywie. `.textBackgroundColor` to dynamiczny kolor tła dokumentu —
+        // biały w jasnym motywie, grafitowy w ciemnym; zaokrąglenie rogów zostaje
+        // przy systemie, jak w każdym oknie `.titled`.
+        isOpaque = true
+        backgroundColor = .textBackgroundColor
         hasShadow = true
 
         // Panel jest tworzony raz i tylko chowany. Bez tego zamknięcie okna zwolniłoby
@@ -117,29 +120,23 @@ final class NotePanel: NSPanel {
     }
 
     private func configureContent() {
-        let background = NSVisualEffectView()
-        background.material = .popover
-        // `.behindWindow` rozmywa to, co jest **pod** oknem. `.withinWindow` rozmywałoby
-        // własną zawartość panelu, czyli tekst notatki.
-        background.blendingMode = .behindWindow
-        // `.active` wymusza pełne rozmycie także wtedy, gdy aplikacja jest nieaktywna —
-        // a nasza jest nieaktywna niemal zawsze.
-        background.state = .active
-        contentView = background
+        // Zwykły widok-kontener — tło rysuje samo okno (`backgroundColor` wyżej).
+        let container = NSView()
+        contentView = container
 
         let editorView = editorViewController.view
         editorView.translatesAutoresizingMaskIntoConstraints = false
-        background.addSubview(editorView)
+        container.addSubview(editorView)
         NSLayoutConstraint.activate([
             // Górny odstęp to niewidoczny pasek tytułu: pod nim tekst byłby zasłonięty
             // przez obszar przeciągania i nie dałoby się w niego kliknąć.
             editorView.topAnchor.constraint(
-                equalTo: background.topAnchor,
+                equalTo: container.topAnchor,
                 constant: AppConfiguration.Panel.dragStripHeight
             ),
-            editorView.leadingAnchor.constraint(equalTo: background.leadingAnchor),
-            editorView.trailingAnchor.constraint(equalTo: background.trailingAnchor),
-            editorView.bottomAnchor.constraint(equalTo: background.bottomAnchor),
+            editorView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            editorView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            editorView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
     }
 

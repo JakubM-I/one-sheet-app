@@ -20,11 +20,19 @@ import AppKit
 @MainActor
 enum MainMenu {
 
-    static func install() {
+    /// Menu „Format" celuje w przekazany `FormattingCommands` (trzy operacje bez
+    /// standardowego selektora), więc instalacja wymaga istniejącego edytora.
+    static func install(formatting: FormattingCommands) {
         let mainMenu = NSMenu()
+
         let editItem = NSMenuItem()
         editItem.submenu = makeEditMenu()
         mainMenu.addItem(editItem)
+
+        let formatItem = NSMenuItem()
+        formatItem.submenu = FormatMenu.makeMenu(commands: formatting)
+        mainMenu.addItem(formatItem)
+
         NSApp.mainMenu = mainMenu
     }
 

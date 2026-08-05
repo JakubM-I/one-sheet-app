@@ -17,8 +17,13 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
     /// Zmiana samej pozycji kursora lub przewinięcia — treść bez zmian.
     var onStateChange: (() -> Void)?
 
-    /// Widok tekstu. Etap 3 sięga tu po operacje formatowania.
-    let textView = NSTextView()
+    /// Widok tekstu.
+    let textView = NoteTextView()
+
+    /// Cel pozycji menu „Format" bez standardowego selektora (przekreślenie, lista,
+    /// usunięcie formatowania). `NSMenuItem.target` nie trzyma obiektu przy życiu,
+    /// więc właścicielem jest kontroler edytora.
+    let formattingCommands = FormattingCommands()
 
     private let scrollView = NSScrollView()
 
@@ -38,6 +43,7 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         configureTextView()
         configureScrollView()
         observeScrolling()
+        observeAttributeChanges()
         view = scrollView
     }
 
@@ -166,17 +172,24 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         textView.isContinuousSpellCheckingEnabled = true
         textView.delegate = self
 
-        // Tło rysuje `NSVisualEffectView` panelu. Gdyby widok tekstu malował swoje,
-        // przykryłby rozmycie jednolitą płaszczyzną.
+        // Wklejony tekst przynosi własne kolory — najczęściej czarny z jasnych stron WWW,
+        // nieczytelny na ciemnym tle. Mapowanie adaptacyjne odwraca takie kolory przy
+        // rysowaniu w ciemnym motywie; w zapisywanym pliku zostają oryginalne wartości.
+        textView.usesAdaptiveColorMappingForDarkAppearance = true
+
+        formattingCommands.textView = textView
+        textView.formattingCommands = formattingCommands
+
+        // Tło rysuje samo okno panelu (`NSWindow.backgroundColor`). Widok tekstu nie
+        // maluje własnego, żeby kolor pod tekstem i pod paskiem przeciągania był jeden.
         textView.drawsBackground = false
         textView.textContainerInset = AppConfiguration.Editor.textInset
         textView.font = .systemFont(ofSize: AppConfiguration.Editor.fontSize)
         // `.labelColor` jest kolorem dynamicznym — sam przełącza się z motywem systemu.
         textView.textColor = .labelColor
-        textView.typingAttributes = [
-            .font: NSFont.systemFont(ofSize: AppConfiguration.Editor.fontSize),
-            .foregroundColor: NSColor.labelColor,
-        ]
+        // Ten sam zestaw, do którego wraca `⌃⌘\` — stan początkowy i „bez formatowania"
+        // mają być jedną definicją, nie dwiema, które mogą się rozjechać.
+        textView.typingAttributes = FormattingCommands.defaultAttributes
 
         // Klasyczny zestaw dla NSTextView w NSScrollView: szerokość podąża za widokiem,
         // wysokość rośnie z treścią w nieskończoność (przewijanie w pionie).
@@ -225,6 +238,31 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
     @objc private func clipViewDidScroll() {
         guard !isApplyingViewport, !isRestoring else { return }
         onStateChange?()
+    }
+
+    /// Siatka bezpieczeństwa autozapisu dla zmian samych atrybutów.
+    ///
+    /// `textDidChange` przychodzi tylko ścieżką `didChangeText()` — a pogrubienie przez
+    /// `NSFontManager` czy cofnięcie operacji formatowania mutują `NSTextStorage` bez
+    /// gwarancji, że ktoś tę metodę zawoła. Zmiana atrybutów bez zmiany znaków też jest
+    /// edycją notatki i też musi trafić na dysk, więc nasłuchujemy samego magazynu tekstu.
+    private func observeAttributeChanges() {
+        guard let storage = textView.textStorage else { return }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(storageDidProcessEditing(_:)),
+            name: NSTextStorage.didProcessEditingNotification,
+            object: storage
+        )
+    }
+
+    @objc private func storageDidProcessEditing(_ notification: Notification) {
+        guard !isRestoring, let storage = notification.object as? NSTextStorage else { return }
+        // Zmiany znaków zgłasza `textDidChange` — tu przepuszczamy wyłącznie edycje
+        // samych atrybutów, żeby nie zgłaszać każdego naciśnięcia klawisza podwójnie.
+        let mask = storage.editedMask
+        guard mask.contains(.editedAttributes), !mask.contains(.editedCharacters) else { return }
+        onTextChange?()
     }
 
     // MARK: - NSTextViewDelegate
