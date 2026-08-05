@@ -108,7 +108,15 @@ Kod trzymany za protokołem `HotKeyRegistering`, aby dało się go podmienić be
 
 ### 3.3 `Editor/`
 
-- `EditorViewController` — `NSScrollView` + `NSTextView` na całej powierzchni, wcięcie 12 pt.
+- `EditorViewController` — kontener z `FormatBar` (30 pt) nad `NSScrollView` + `NSTextView`,
+  wcięcie tekstu 12 pt.
+- `FormatBar` — sześć przycisków formatowania. Akcję i cel każdego bierze z
+  `FormatMenu.makeItems(commands:)`, a stan włączenia z `FormattingState`; własnej logiki
+  formatowania nie ma. Kliknięcie przekazuje akcję przez `NSApp.sendAction(_:to:from:)`,
+  więc pozycje z pustym celem trafiają w łańcuch responderów dokładnie tak, jak z menu.
+- `FormattingState` — odczyt „czy ta cecha jest teraz włączona". Jedno źródło dla przełączania
+  (`FormattingCommands`) i dla podświetlenia przycisków. Cecha liczy się jako włączona tylko
+  wtedy, gdy obejmuje całe zaznaczenie; pusty zakres pyta `typingAttributes`.
 - Konfiguracja `NSTextView`: `isRichText = true`, `allowsUndo = true`,
   `isAutomaticQuoteSubstitutionEnabled = false` (cudzysłowy typograficzne psują wklejany kod),
   `isContinuousSpellCheckingEnabled = true`, `usesFindBar = false`,

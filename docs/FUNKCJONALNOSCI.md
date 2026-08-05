@@ -30,7 +30,8 @@ tam jest.
 
 ### 2. Panel z notatnikiem
 
-- Jedno pole tekstowe wypełniające cały panel — bez pasków narzędzi, bez tytułu, bez zakładek.
+- Pole tekstowe wypełniające panel, a nad nim wąski pasek sześciu przycisków formatowania
+  (patrz sekcja 4). Poza tym nic: bez tytułu, bez zakładek, bez drugiego paska narzędzi.
 - Panel jest przesuwalny i skalowalny; jego rozmiar i pozycja są zapamiętywane między
   uruchomieniami.
 - Po otwarciu kursor od razu jest w tekście, w miejscu, w którym był ostatnio.
@@ -49,22 +50,29 @@ tam jest.
 
 ### 4. Formatowanie treści
 
-Jedyna „funkcja" aplikacji poza pisaniem. Dostępne przez skróty klawiszowe i menu kontekstowe
-(prawy przycisk myszy w polu tekstu):
+Jedyna „funkcja" aplikacji poza pisaniem. Dostępne przez skróty klawiszowe, pasek nad polem
+tekstu i menu kontekstowe (prawy przycisk myszy w polu tekstu):
 
-| Działanie | Skrót |
-|---|---|
-| Pogrubienie | `⌘B` |
-| Kursywa | `⌘I` |
-| Podkreślenie | `⌘U` |
-| Przekreślenie | `⌃⌘K` |
-| Powiększ / pomniejsz czcionkę | `⌘+` / `⌘-` |
-| Lista punktowana | `⌃⌘L` |
-| Wyrównanie do lewej / do środka | `⌘{` / `⌘\|` |
-| Usuń formatowanie zaznaczenia | `⌃⌘\` |
-| Wklej bez formatowania | `⌥⇧⌘V` |
+| Działanie | Skrót | Na pasku |
+|---|---|---|
+| Pogrubienie | `⌘B` | ✅ |
+| Kursywa | `⌘I` | ✅ |
+| Podkreślenie | `⌘U` | ✅ |
+| Przekreślenie | `⌃⌘K` | ✅ |
+| Powiększ / pomniejsz czcionkę | `⌘+` / `⌘-` | — |
+| Lista punktowana | `⌃⌘L` | ✅ |
+| Wyrównanie do lewej / do środka | `⌘{` / `⌘\|` | — |
+| Usuń formatowanie zaznaczenia | `⌃⌘\` | ✅ |
+| Wklej bez formatowania | `⌥⇧⌘V` | — |
 
-Menu kontekstowe zawiera te same pozycje, aby dało się formatować bez pamiętania skrótów.
+Menu kontekstowe zawiera **wszystkie** pozycje, aby dało się formatować bez pamiętania skrótów.
+
+Pasek nad polem tekstu zawiera sześć najczęstszych operacji. Przyciski przełączników
+odzwierciedlają stan tekstu pod kursorem (pogrubione „B", gdy kursor stoi w pogrubionym
+fragmencie), a ich podpowiedzi pokazują skrót klawiszowy — pasek ma z czasem uczyć skrótów,
+a nie zastępować ich na stałe. Rzadsze operacje (rozmiar czcionki, wyrównanie, wklejanie
+bez formatowania) zostają wyłącznie w menu kontekstowym i pod skrótami: pasek ma pozostać
+kreską ikon, nie wstążką.
 
 ### 5. Zapis i trwałość
 

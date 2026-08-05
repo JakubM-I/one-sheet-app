@@ -81,6 +81,17 @@ enum AppConfiguration {
 
         /// Domyślny rozmiar czcionki notatki.
         static let fontSize: CGFloat = 14
+
+        /// Wysokość paska szybkiego formatowania nad polem tekstu. Doliczana do
+        /// `Panel.dragStripHeight` — razem odsuwają pierwszą linijkę notatki od góry okna.
+        static let formatBarHeight: CGFloat = 30
+
+        /// Najmniejszy odstęp przycisków paska od krawędzi okna. Przyciski są wyśrodkowane,
+        /// więc ta wartość działa dopiero przy oknie zwężonym do minimum.
+        static let formatBarInset: CGFloat = 8
+
+        /// Odstęp między przyciskami paska.
+        static let formatBarSpacing: CGFloat = 2
     }
 
     enum Storage {
