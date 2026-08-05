@@ -40,7 +40,7 @@ final class FormattingCommands: NSObject {
             return
         }
 
-        let adding = !isStruckEverywhere(in: textView, range: selection)
+        let adding = !FormattingState.isSet(.strikethroughStyle, in: textView, range: selection)
         mutate(textView, in: selection) { storage in
             if adding {
                 storage.addAttribute(
@@ -60,7 +60,7 @@ final class FormattingCommands: NSObject {
     @objc func toggleBulletedList(_ sender: Any?) {
         guard let textView, let storage = textView.textStorage else { return }
         let paragraphs = (storage.string as NSString).paragraphRange(for: textView.selectedRange())
-        let adding = !isBulletedEverywhere(in: textView, paragraphs: paragraphs)
+        let adding = !FormattingState.isBulleted(in: textView, paragraphs: paragraphs)
 
         // Jeden obiekt listy dla całej operacji — akapity z osobnymi `NSTextList`
         // byłyby osobnymi listami jednopunktowymi, nie punktami jednej listy.
@@ -68,7 +68,7 @@ final class FormattingCommands: NSObject {
 
         if paragraphs.length > 0 {
             mutate(textView, in: paragraphs) { storage in
-                enumerateParagraphs(of: storage, in: paragraphs) { paragraph in
+                FormattingState.enumerateParagraphs(of: storage, in: paragraphs) { paragraph in
                     let style = mutableParagraphStyle(of: storage, at: paragraph.location)
                     style.textLists = lists
                     storage.addAttribute(.paragraphStyle, value: style, range: paragraph)
@@ -131,18 +131,6 @@ final class FormattingCommands: NSObject {
 
     // MARK: - Przekreślenie: stan bieżący
 
-    private func isStruckEverywhere(in textView: NSTextView, range: NSRange) -> Bool {
-        guard let storage = textView.textStorage else { return false }
-        var struckEverywhere = true
-        storage.enumerateAttribute(.strikethroughStyle, in: range) { value, _, stop in
-            if (value as? Int ?? 0) == 0 {
-                struckEverywhere = false
-                stop.pointee = true
-            }
-        }
-        return struckEverywhere
-    }
-
     private func toggleTypingStrikethrough(in textView: NSTextView) {
         var attributes = textView.typingAttributes
         if (attributes[.strikethroughStyle] as? Int ?? 0) == 0 {
@@ -153,39 +141,7 @@ final class FormattingCommands: NSObject {
         textView.typingAttributes = attributes
     }
 
-    // MARK: - Lista: stan bieżący i akapity
-
-    private func isBulletedEverywhere(in textView: NSTextView, paragraphs: NSRange) -> Bool {
-        guard let storage = textView.textStorage, paragraphs.length > 0 else {
-            let style = textView.typingAttributes[.paragraphStyle] as? NSParagraphStyle
-            return !(style?.textLists.isEmpty ?? true)
-        }
-
-        var bulletedEverywhere = true
-        enumerateParagraphs(of: storage, in: paragraphs) { paragraph in
-            let style = storage.attribute(
-                .paragraphStyle, at: paragraph.location, effectiveRange: nil
-            ) as? NSParagraphStyle
-            if style?.textLists.isEmpty ?? true {
-                bulletedEverywhere = false
-            }
-        }
-        return bulletedEverywhere
-    }
-
-    /// Przechodzi po pełnych akapitach pokrywających `range` — także wtedy, gdy zaznaczenie
-    /// zaczyna się lub kończy w środku akapitu. Styl akapitu jest atrybutem całego akapitu,
-    /// więc operacje akapitowe nie mogą honorować granic zaznaczenia co do znaku.
-    private func enumerateParagraphs(of storage: NSTextStorage, in range: NSRange, _ body: (NSRange) -> Void) {
-        let string = storage.string as NSString
-        var location = range.location
-        while location < NSMaxRange(range) {
-            let paragraph = string.paragraphRange(for: NSRange(location: location, length: 0))
-            guard paragraph.length > 0 else { break }
-            body(paragraph)
-            location = NSMaxRange(paragraph)
-        }
-    }
+    // MARK: - Styl akapitu
 
     private func mutableParagraphStyle(of storage: NSTextStorage, at location: Int) -> NSMutableParagraphStyle {
         let existing = storage.attribute(.paragraphStyle, at: location, effectiveRange: nil) as? NSParagraphStyle

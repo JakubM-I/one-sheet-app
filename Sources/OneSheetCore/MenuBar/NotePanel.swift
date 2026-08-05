@@ -139,12 +139,9 @@ final class NotePanel: NSPanel {
         editorView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(editorView)
         NSLayoutConstraint.activate([
-            // Górny odstęp to niewidoczny pasek tytułu: pod nim tekst byłby zasłonięty
-            // przez obszar przeciągania i nie dałoby się w niego kliknąć.
-            editorView.topAnchor.constraint(
-                equalTo: container.topAnchor,
-                constant: AppConfiguration.Panel.dragStripHeight
-            ),
+            // Bez odstępu na pasek tytułu: jego obszar zajmuje teraz pasek formatowania,
+            // który sam przejmuje przeciąganie okna (`FormatBar.mouseDown`).
+            editorView.topAnchor.constraint(equalTo: container.topAnchor),
             editorView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             editorView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             editorView.bottomAnchor.constraint(equalTo: container.bottomAnchor),

@@ -27,6 +27,10 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
 
     private let scrollView = NSScrollView()
 
+    /// Pasek szybkiego formatowania nad polem tekstu. Powstaje leniwie, bo potrzebuje
+    /// gotowego `textView` — a ten konfiguruje się dopiero w `loadView()`.
+    private lazy var formatBar = FormatBar(textView: textView, formattingCommands: formattingCommands)
+
     /// Blokada zdarzeń w trakcie wczytywania notatki. Bez niej ustawienie treści i kursora
     /// zaraz po starcie wyglądałoby jak edycja użytkownika i uruchamiało zapis tego,
     /// co przed chwilą zostało wczytane.
@@ -44,7 +48,33 @@ final class EditorViewController: NSViewController, NSTextViewDelegate {
         configureScrollView()
         observeScrolling()
         observeAttributeChanges()
-        view = scrollView
+        view = makeContainer()
+    }
+
+    /// Widok edytora to pasek formatowania nad polem tekstu. Panel wstawia całość jako
+    /// jeden podwidok i nie musi wiedzieć, że pasek istnieje.
+    private func makeContainer() -> NSView {
+        let container = NSView()
+
+        formatBar.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(formatBar)
+        container.addSubview(scrollView)
+
+        NSLayoutConstraint.activate([
+            formatBar.topAnchor.constraint(equalTo: container.topAnchor),
+            formatBar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            formatBar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            formatBar.heightAnchor.constraint(
+                equalToConstant: AppConfiguration.Editor.formatBarHeight
+            ),
+
+            scrollView.topAnchor.constraint(equalTo: formatBar.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+        return container
     }
 
     // MARK: - Treść i stan sesji
