@@ -168,10 +168,16 @@ final class NotePanel: NSPanel {
         guard let visibleFrame = targetScreen(for: anchor)?.visibleFrame else { return }
 
         if hasResolvedFrame {
-            // Ramka z poprzedniej sesji mogła pochodzić z monitora, którego już nie ma.
-            let corrected = PanelGeometry.clamped(frame, to: visibleFrame)
+            // Ramka z poprzedniej sesji mogła pochodzić z innego monitora — podłączonego
+            // (wtedy panel wraca pod klikniętą ikonę) albo już odłączonego.
+            let corrected = PanelGeometry.presentationFrame(
+                saved: frame,
+                anchor: anchor,
+                visibleFrame: visibleFrame,
+                gap: AppConfiguration.Panel.gapBelowStatusItem
+            )
             if corrected != frame {
-                Log.panel.info("Zapamiętana ramka wykraczała poza ekran — skorygowana")
+                Log.panel.info("Zapamiętana ramka nie pasowała do ekranu docelowego — skorygowana")
                 setFrame(corrected, display: false)
             }
         } else {

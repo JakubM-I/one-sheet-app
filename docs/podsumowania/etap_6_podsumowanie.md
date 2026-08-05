@@ -131,15 +131,33 @@ Wszystkie w rejestrze decyzji w [WORKFLOW.md](../WORKFLOW.md):
   - restart kontrolny: ponownej rejestracji **nie ma** (mechanizm jednorazowy), notatka
     użytkownika (227 znaków) wczytana z zainstalowanej kopii;
   - czysta przebudowa bez ostrzeżeń.
+- **Potwierdzone przez użytkownika 2026-08-05:** wygląd finalnej ikony (Finder,
+  `/Applications`); dwa monitory — panel otwierany na drugim ekranie, po dwóch poprawkach
+  pozycjonowania (sekcja 6) pozycja zaakceptowana; Spaces i pełny ekran innej aplikacji —
+  panel pozostaje widoczny. Tym samym domknięte zaległości z etapu 5.
 - **Wymaga weryfikacji przez Ciebie:**
-  - wygląd finalnej ikony w Finderze i na liście Elementów logowania (Finder potrafi
-    cache'ować starą — pomaga `killall Finder`);
   - restart Maca: ikona w belce pojawia się sama, proces działa z `/Applications`
-    (`ps aux | grep OneSheet`) — domyka też zaległość z etapów 4–5;
-  - zaległe z etapu 5: dwa monitory, Spaces, pełny ekran;
+    (`ps aux | grep OneSheet`) — domyka zaległość z etapu 4;
   - tydzień codziennego użycia.
 
 ## 6. Napotkane problemy
+
+**Defekt z weryfikacji dwóch monitorów (zgłoszony po pierwszym raporcie etapu).** Panel
+otwarty wcześniej na wbudowanym ekranie, po kliknięciu ikony na zewnętrznym monitorze
+lądował przy jego krawędzi zamiast pod ikoną. Przyczyna: zapamiętana ramka była zawsze
+tylko przycinana (`PanelGeometry.clamped`) do ekranu docelowego — a przycięcie „dociąga"
+prostokąt do najbliższej krawędzi, więc panel kończył najbliżej swojej starej pozycji.
+Naprawa: `PanelGeometry.presentationFrame` — ramka przecinająca ekran docelowy jest
+przycinana jak dotąd, ramka z innego ekranu jest zakotwiczana na nowo pod klikniętą ikoną
+z zachowaniem rozmiaru. Cztery nowe testy (razem 69).
+
+**Poprawka wyglądu przy okazji tej samej weryfikacji.** Zakotwiczony na nowo panel wypadał
+wyśrodkowany względem ikony, przez co odsuwał się od niej w prawo — przy szerokim oknie
+wyglądało to jak położenie przypadkowe. Zmiana: panel wyrównuje się do **lewej krawędzi**
+ikony (z tym samym marginesem 6 pt, który dzieli go od belki), więc ikona zostaje nad
+rogiem panelu, jak przy menu rozwijanym z belki. Gdy wyrównany panel wystawałby poza prawą
+krawędź ekranu, dotychczasowe przycinanie cofa go do krawędzi — bez zmiany rozmiaru
+(razem 70 testów).
 
 Największą pracą etapu okazało się coś, czego w planie nie było: odkrycie, że login item
 trzyma ścieżkę pakietu. Kolejność dochodzenia: `sfltool dumpbtm` pokazał URL wskazujący

@@ -77,8 +77,14 @@ a przy wklejaniu długich treści to blokujące ograniczenie. Wybieramy `NSPanel
   za górny pas 28 pt
 - `becomesKeyOnlyIfNeeded = false` — panel musi przyjmować klawiaturę bez aktywowania aplikacji
 - rozmiar i pozycja przez `setFrameAutosaveName("NotePanel")`, domyślnie 380×480 pt
-- pozycjonowanie przy pierwszym otwarciu: wyśrodkowany pod ikoną statusu, z marginesem 6 pt
-  poniżej belki, przycięty do widocznego obszaru ekranu (`NSScreen.visibleFrame`)
+- pozycjonowanie przy pierwszym otwarciu: zaczepiony pod ikoną statusu i wyrównany do jej
+  lewej krawędzi (ten sam margines 6 pt co poniżej belki), przycięty do widocznego obszaru
+  ekranu (`NSScreen.visibleFrame`). **Zmiana 2026-08-05** — pierwotnie wyśrodkowany
+  względem ikony; patrz rejestr decyzji
+- kolejne otwarcia: obowiązuje zapamiętana ramka, ale tylko na jej ekranie. Otwarcie na
+  **innym** ekranie (klik w ikonę na drugim monitorze) zakotwicza panel na nowo pod ikoną,
+  z zachowaniem rozmiaru; ramka częściowo wystająca za ekran jest tylko wsuwana do środka
+  (`PanelGeometry.presentationFrame`, poprawka z 2026-08-05 — patrz rejestr decyzji)
 - tło: jednolite, `NSWindow.backgroundColor = .textBackgroundColor` (dynamiczny kolor tła
   dokumentu, podąża za motywem), zaokrąglenie rogów zostawione systemowi.
   **Zmiana 2026-08-05** — pierwotnie `NSVisualEffectView` z materiałem `.popover`

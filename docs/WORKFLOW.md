@@ -217,7 +217,7 @@ i włącz autostart z menu, na końcu zrestartuj Maca i sprawdź, że ikona wró
 
 ---
 
-## Etap 5 — Hardening ✅ (czeka na weryfikację ręczną)
+## Etap 5 — Hardening ✅ (zweryfikowany)
 
 **Cel:** aplikacja, której można zaufać z jedynym egzemplarzem swoich notatek.
 
@@ -252,10 +252,12 @@ i włącz autostart z menu, na końcu zrestartuj Maca i sprawdź, że ikona wró
   najbliższy restart; nr 5 (przewijanie 50 000+ bez zacięć) i nr 6 — patrz niżej
 - ✅ płynność przewijania notatki 200 000 znaków na stanowisku — potwierdzone przez
   użytkownika 2026-08-05
-- ⬜ dwa monitory: panel na drugim ekranie, odłączenie monitora przy otwartym i schowanym
-  panelu, zmiana rozdzielczości przy otwartym panelu — **odłożone**: brak drugiego
-  monitora pod ręką; użytkownik sprawdzi przy weryfikacji końcowej po etapie 6
-- ⬜ Spaces i pełny ekran innej aplikacji — przy tej samej weryfikacji końcowej
+- ✅ dwa monitory: panel otwierany na drugim ekranie — sprawdzone przez użytkownika
+  2026-08-05 przy weryfikacji etapu 6. Wykryło defekt pozycjonowania (panel lądował przy
+  krawędzi zamiast pod ikoną), naprawiony przez `PanelGeometry.presentationFrame`;
+  pozycja po naprawie potwierdzona
+- ✅ Spaces i pełny ekran innej aplikacji — panel pozostaje widoczny; potwierdzone przez
+  użytkownika 2026-08-05
 
 **Weryfikacja ręczna:** `./scripts/longnote_stand.sh`, klik w ikonę, przewiń notatkę od
 początku do końca (płynność), wpisz coś na końcu; `log stream` pokaże `Panel pokazany
@@ -291,10 +293,14 @@ monitor: otwórz panel na nim, odłącz kabel, sprawdź, że panel wskoczył na 
 - ✅ aplikacja zainstalowana przez `./scripts/install.sh` w `/Applications` i uruchomiona
   stamtąd; wpis autostartu w bazie systemu (`sfltool dumpbtm`) wskazuje
   `/Applications/OneSheet.app` — sprawdzone na żywym systemie 2026-08-05
-- ⬜ finalna ikona zaakceptowana wizualnie (Finder, belka, Elementy logowania) — człowiek
+- ✅ finalna ikona zaakceptowana wizualnie (Finder, `/Applications`) — potwierdzone przez
+  użytkownika 2026-08-05
+- ✅ zaległa weryfikacja z etapu 5: dwa monitory, Spaces, pełny ekran innej aplikacji —
+  potwierdzone przez użytkownika 2026-08-05. Po drodze dwie poprawki pozycjonowania panelu
+  (zakotwiczenie po zmianie monitora i wyrównanie do lewej krawędzi ikony) — patrz rejestr
+  decyzji; pozycja po zmianach zaakceptowana
 - ⬜ ikona pojawia się sama po restarcie Maca, już z kopii w `/Applications` — przy
-  najbliższym restarcie (domyka też zaległość z etapów 4–5)
-- ⬜ zaległa weryfikacja z etapu 5: dwa monitory, Spaces, pełny ekran innej aplikacji
+  najbliższym restarcie (domyka też zaległość z etapu 4)
 - ⬜ tydzień codziennego użycia bez utraty danych i bez ręcznego restartu
 
 **Weryfikacja ręczna:** `./scripts/install.sh`, obejrzyj ikonę w Finderze (`/Applications`)
@@ -338,4 +344,6 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-05 | 6 | Bez notaryzacji i podpisu Developer ID | aplikacja jest budowana i używana na tej samej maszynie — Gatekeeper nie sprawdza lokalnych buildów; notaryzacja miałaby sens dopiero przy przenoszeniu gotowego pakietu na inny Mac, a wtedy właściwą drogą jest „sklonuj i zbuduj na miejscu" |
 | 2026-08-05 | 6 | `LaunchAtLogin.reconcileOnLaunch()` — naprawa rejestracji autostartu po przeniesieniu pakietu (rozszerzenie zakresu etapu) | pomiar na żywym systemie: wpis w bazie Background Task Management trzyma **ścieżkę** pakietu, `SMAppService.mainApp.status` z nowej lokalizacji dalej zwraca `.enabled` (dopasowanie po identyfikatorze), a ponowna `register()` aktualizuje wpis w miejscu (ten sam UUID, nowy URL). Bez naprawy logowanie po instalacji uruchamiałoby kopię z repozytorium. Warunki: tylko kopia w `/Applications`, tylko przy statusie `.enabled` — kopia robocza nie kradnie autostartu, a decyzja użytkownika z Ustawień systemowych zostaje uszanowana |
 | 2026-08-05 | 6 | Finalna ikona nadal z generatora, kształt maski przez `SwiftUI.RoundedRectangle(style: .continuous).path(in:)` | jedyne publiczne API oddające dokładnie superelipsę Apple; `NSBezierPath(roundedRect:)` daje rogi kołowe, widocznie „twardsze" przy pełnowymiarowej ikonie. Wersja robocza pływała małą kartką na przezroczystym tle — finalna wypełnia siatkę ikon macOS (824/1024, promień ~22,5%) |
+| 2026-08-05 | 6 | Zapamiętana ramka panelu obowiązuje tylko na swoim ekranie; otwarcie na innym monitorze zakotwicza panel na nowo pod ikoną (`PanelGeometry.presentationFrame`) | defekt z weryfikacji dwóch monitorów: `clamped(_:to:)` stosowane bezwarunkowo „dociągało" ramkę z wbudowanego ekranu do najbliższej krawędzi zewnętrznego — panel lądował w rogu zamiast pod klikniętą ikoną. Przycinanie zostaje dla ramki częściowo wystającej (ta sama logika co przy odłączonym monitorze traci sens tylko wtedy, gdy ramka w ogóle nie przecina ekranu docelowego) |
+| 2026-08-05 | 6 | Panel zaczepiany pod ikoną **wyrównaniem do jej lewej krawędzi**, nie wyśrodkowaniem względem niej | zgłoszenie użytkownika przy weryfikacji dwóch monitorów: wyśrodkowany panel odsuwa się w prawo od ikony i wygląda jak położony przypadkowo. Ikona ma zostać nad rogiem panelu, tak jak przy menu rozwijanym z belki. Margines to ten sam `gap` 6 pt, który dzieli panel od belki — ikona jest wtedy wizualnie wewnątrz panelu, a nie dokładnie w narożniku |
 | 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |

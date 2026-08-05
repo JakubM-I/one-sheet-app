@@ -15,14 +15,26 @@ struct PanelGeometryTests {
         NSRect(x: x, y: 877, width: 24, height: 22)
     }
 
-    @Test("panel jest wyśrodkowany pod ikoną")
-    func centeredBelowStatusItem() {
+    /// Zmiana 2026-08-05: ikona ma zostać nad rogiem panelu, a nie nad jego środkiem.
+    @Test("panel zaczepia się pod ikoną, wyrównany do jej lewej krawędzi")
+    func alignedBelowStatusItem() {
         let frame = PanelGeometry.initialFrame(
-            size: size, anchor: statusItem(atX: 1200), visibleFrame: screen, gap: gap
+            size: size, anchor: statusItem(atX: 900), visibleFrame: screen, gap: gap
         )
-        #expect(frame.midX == 1212, "środek panelu pod środkiem ikony")
+        #expect(frame.minX == 900 - gap, "lewa krawędź panelu tuż przed lewą krawędzią ikony")
         #expect(frame.maxY == 877 - gap, "górna krawędź poniżej ikony")
         #expect(frame.size == size, "rozmiar bez zmian")
+    }
+
+    /// Ikona blisko prawej krawędzi: panel wyrównany do niej wystawałby poza ekran,
+    /// więc wsuwa się w obszar roboczy — ale nadal kończy pod ikoną, nie przed nią.
+    @Test("ikona przy prawej krawędzi cofa panel do krawędzi ekranu")
+    func alignmentYieldsToScreenEdge() {
+        let frame = PanelGeometry.initialFrame(
+            size: size, anchor: statusItem(atX: 1300), visibleFrame: screen, gap: gap
+        )
+        #expect(frame.maxX == screen.maxX)
+        #expect(frame.size == size)
     }
 
     /// Oba brzegi ekranu jednym testem: panel ma się wsunąć do środka,
@@ -73,5 +85,51 @@ struct PanelGeometryTests {
     func leavesValidFrameAlone() {
         let untouched = NSRect(x: 100, y: 100, width: 380, height: 480)
         #expect(PanelGeometry.clamped(untouched, to: screen) == untouched)
+    }
+
+    // MARK: - Ponowne pokazanie z zapamiętaną ramką
+
+    /// Defekt z weryfikacji dwóch monitorów (2026-08-05): ramka zapamiętana na
+    /// wbudowanym ekranie, ikona kliknięta na zewnętrznym — panel ma wrócić pod
+    /// ikonę, a nie zostać dociągnięty do najbliższej krawędzi nowego ekranu.
+    @Test("ramka z innego monitora wraca pod klikniętą ikonę")
+    func reanchorsFrameFromAnotherScreen() {
+        let savedOnBuiltIn = NSRect(x: -1200, y: -600, width: 420, height: 520)
+        let frame = PanelGeometry.presentationFrame(
+            saved: savedOnBuiltIn, anchor: statusItem(atX: 900), visibleFrame: screen, gap: gap
+        )
+        #expect(frame.minX == 900 - gap, "lewa krawędź panelu tuż przed lewą krawędzią ikony")
+        #expect(frame.maxY == 877 - gap, "górna krawędź poniżej ikony")
+        #expect(frame.size == savedOnBuiltIn.size, "rozmiar użytkownika zachowany")
+    }
+
+    @Test("ramka z innego monitora bez ikony ląduje pod górną krawędzią ekranu")
+    func reanchorsFrameWithoutAnchor() {
+        let savedOnBuiltIn = NSRect(x: -1200, y: -600, width: 380, height: 480)
+        let frame = PanelGeometry.presentationFrame(
+            saved: savedOnBuiltIn, anchor: nil, visibleFrame: screen, gap: gap
+        )
+        #expect(frame.midX == screen.midX)
+        #expect(frame.maxY == screen.maxY - gap)
+    }
+
+    @Test("ramka częściowo wystająca za ekran jest przycinana, nie przenoszona pod ikonę")
+    func clampsPartiallyVisibleFrame() {
+        let partiallyOff = NSRect(x: 1300, y: 100, width: 380, height: 480)
+        let frame = PanelGeometry.presentationFrame(
+            saved: partiallyOff, anchor: statusItem(atX: 200), visibleFrame: screen, gap: gap
+        )
+        #expect(screen.contains(frame))
+        #expect(frame.minY == 100, "pozycja pionowa zostaje — to korekta, nie przeprowadzka")
+        #expect(frame.maxX == screen.maxX, "wsunięta dokładnie do krawędzi")
+    }
+
+    @Test("ramka w całości na ekranie docelowym nie jest ruszana")
+    func keepsFrameOnTargetScreen() {
+        let saved = NSRect(x: 900, y: 300, width: 380, height: 480)
+        let frame = PanelGeometry.presentationFrame(
+            saved: saved, anchor: statusItem(atX: 200), visibleFrame: screen, gap: gap
+        )
+        #expect(frame == saved)
     }
 }
