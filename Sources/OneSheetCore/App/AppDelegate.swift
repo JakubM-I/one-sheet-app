@@ -8,6 +8,12 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController?
     private var notePanel: NotePanel?
     private let noteStore = NoteStore()
+    private let launchAtLogin = LaunchAtLogin()
+    private var globalHotKey: HotKeyRegistering?
+
+    /// Komunikat o niedostępnym skrócie globalnym — pokazywany w menu kontekstowym.
+    /// `nil`, gdy skrót został zarejestrowany albo jest wyłączony w ustawieniach.
+    private var hotKeyNotice: String?
 
     public override init() {
         super.init()
@@ -50,6 +56,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.showContextMenu()
         }
         statusItemController = controller
+
+        registerGlobalHotKey()
+        launchAtLogin.enableOnFirstLaunch()
 
         Log.app.info("Aplikacja uruchomiona")
     }
@@ -111,10 +120,51 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         noteStore.flush()
     }
 
-    // MARK: - Miejsca na kolejne etapy
+    // MARK: - Integracja z systemem
 
-    /// Etap 4: menu z pozycjami „Uruchamiaj przy logowaniu" i „Zakończ".
+    /// Skrót działa bez żadnych uprawnień. Nieudana rejestracja (najczęściej kombinacja
+    /// zajęta przez inną aplikację) nie wywraca aplikacji — funkcja zostaje wyłączona,
+    /// komunikat trafia do menu kontekstowego, a panel dalej otwiera klik w ikonę
+    /// (plan awaryjny ze specyfikacji, sekcja 8).
+    private func registerGlobalHotKey() {
+        if let enabled = UserDefaults.standard.object(forKey: AppConfiguration.Defaults.hotKeyEnabled) as? Bool,
+           !enabled {
+            Log.app.info("Skrót globalny wyłączony w ustawieniach — pomijam rejestrację")
+            return
+        }
+
+        let hotKey = GlobalHotKey()
+        hotKey.onHotKey = { [weak self] in
+            self?.togglePanel()
+        }
+        do {
+            try hotKey.register()
+            globalHotKey = hotKey
+        } catch {
+            hotKeyNotice = "Skrót \(AppConfiguration.HotKey.displayName) niedostępny"
+            Log.app.error("Rejestracja skrótu globalnego nieudana: \(String(describing: error), privacy: .public)")
+        }
+    }
+
     private func showContextMenu() {
-        Log.app.info("showContextMenu() — menu powstaje w etapie 4")
+        var model = StatusItemMenu.Model()
+        model.launchAtLoginEnabled = launchAtLogin.isEnabled
+        if launchAtLogin.requiresApproval {
+            model.launchAtLoginNotice = "Czeka na zgodę w Ustawieniach systemowych"
+        } else if let failure = launchAtLogin.lastFailureDescription {
+            model.launchAtLoginNotice = "Autostart niedostępny: \(failure)"
+        }
+        model.hotKeyNotice = hotKeyNotice
+
+        let menu = StatusItemMenu.makeMenu(
+            model: model,
+            target: self,
+            toggleLaunchAtLoginAction: #selector(toggleLaunchAtLogin)
+        )
+        statusItemController?.showMenu(menu)
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        launchAtLogin.toggle()
     }
 }

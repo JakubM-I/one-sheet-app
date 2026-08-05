@@ -172,23 +172,48 @@ i sprawdź, że pogrubienie przeżyło restart.
 
 ---
 
-## Etap 4 — Integracja z systemem ⬜
+## Etap 4 — Integracja z systemem ✅ (zweryfikowany; restart Maca do sprawdzenia przy okazji)
 
 **Cel:** aplikacja zachowuje się jak stały element systemu.
 
 **Zakres**
-- podpis ad-hoc w `bundle.sh` (warunek działania `SMAppService`)
+- podpis ad-hoc w `bundle.sh` (warunek działania `SMAppService`), uzupełniony
+  o `--options runtime` zgodnie ze specyfikacją (sekcja 5)
 - `GlobalHotKey` przez `RegisterEventHotKey`, domyślnie `⌥⌘N`, z obsługą błędu rejestracji
 - menu kontekstowe ikony: „Uruchamiaj przy logowaniu" (stan z `SMAppService.mainApp.status`),
   „Zakończ"
-- `SMAppService.mainApp.register()` / `.unregister()`
-- ikona aplikacji `AppIcon.icns`
+- `SMAppService.mainApp.register()` / `.unregister()`, autostart domyślnie włączany
+  przy pierwszym uruchomieniu
+- ikona aplikacji `AppIcon.icns` (wersja robocza z generatora `scripts/make_icon.swift`;
+  finalna powstaje w etapie 6)
 
 **Definicja ukończenia**
-- `⌥⌘N` otwiera i zamyka panel z dowolnej aplikacji, bez proszenia o uprawnienia
-- po włączeniu autostartu i restarcie Maca ikona pojawia się sama
-- nieudana rejestracja skrótu nie wywraca aplikacji, tylko wyłącza funkcję z komunikatem
-- aplikacja widoczna w Ustawieniach systemowych → Elementy logowania
+- ✅ `swift build` od zera bez ostrzeżeń, `./scripts/test.sh` — 49 testów przechodzi,
+  aplikacja startuje i wczytuje istniejącą notatkę
+- ✅ `⌥⌘N` z innej aplikacji otwiera i chowa panel, kursor od razu w tekście,
+  bez proszenia o uprawnienia — potwierdzone przez użytkownika 2026-08-05
+- ✅ `SMAppService` przyjął podpis ad-hoc: pierwsze uruchomienie kończy się statusem
+  `.enabled` (ryzyko ze specyfikacji sekcja 8 nie zmaterializowało się);
+  ⬜ ikona pojawia się sama po restarcie Maca — użytkownik sprawdzi przy najbliższym
+  restarcie
+- ✅ nieudana rejestracja skrótu nie wywraca aplikacji — ścieżka błędu pod testami
+  `GlobalHotKey`; przy okazji pomiar: konflikt z inną aplikacją **nie** objawia się
+  błędem rejestracji (patrz rejestr decyzji), więc komunikat w menu to zabezpieczenie
+  na wypadek awarii samego API
+- ✅ aplikacja widoczna w Ustawieniach systemowych → Elementy logowania — potwierdzone
+  przez użytkownika 2026-08-05
+- ✅ menu kontekstowe: ptaszek autostartu odpowiada stanowi systemu, przełączenie
+  działa w obie strony, „Zakończ" kończy aplikację z zapisem notatki — potwierdzone
+  przez użytkownika 2026-08-05
+- ✅ robocza ikona aplikacji zaakceptowana (finalna powstaje w etapie 6) — potwierdzone
+  przez użytkownika 2026-08-05
+
+**Weryfikacja ręczna:** naciśnij `⌥⌘N` w innej aplikacji (panel się otwiera, drugie
+naciśnięcie chowa), kliknij ikonę prawym przyciskiem i przejdź obie pozycje menu,
+sprawdź listę w Ustawieniach systemowych → Ogólne → Elementy logowania, wyłącz
+i włącz autostart z menu, na końcu zrestartuj Maca i sprawdź, że ikona wróciła sama.
+
+**Podsumowanie:** [podsumowania/etap_4_podsumowanie.md](podsumowania/etap_4_podsumowanie.md)
 
 ---
 
@@ -252,4 +277,6 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-05 | 3 | Pozycje formatowania w menu kontekstowym jako podmenu „Formatowanie", nie luzem | systemowe menu kontekstowe `NSTextView` ma kilkanaście pozycji, a AppKit własne grupy (Font, Substitutions) też trzyma w podmenu; źródło pozycji pozostaje jedno (`FormatMenu`) |
 | 2026-08-05 | 3 | `usesAdaptiveColorMappingForDarkAppearance = true` — poza literalnym zakresem etapu | kryterium „po przełączeniu na ciemny motyw cały tekst pozostaje czytelny" jest nie do spełnienia dla tekstu wklejonego z jasnych stron (stały czarny kolor); mapowanie odwraca kolory tylko przy rysowaniu, w pliku zostają oryginalne |
 | 2026-08-05 | 3 | Autozapis formatowania: obok `textDidChange` nasłuch `NSTextStorage.didProcessEditingNotification` filtrowany do edycji samych atrybutów | operacje `NSFontManager` i cofnięcie formatowania mutują `NSTextStorage` bez gwarancji przejścia przez `didChangeText()`; nasłuch magazynu łapie każdą mutację atrybutów niezależnie od drogi, którą przyszła |
+| 2026-08-05 | 4 | **Sprostowanie ryzyka ze specyfikacji, sekcja 8**: „skrót zajęty przez inną aplikację" nie powoduje błędu rejestracji | pomiar: `RegisterEventHotKey` dla `⌥⌘N` w drugim procesie zwraca `noErr`, gdy OneSheet już trzyma tę kombinację — system dopuszcza duplikaty między procesami i sam rozstrzyga doręczanie. `eventHotKeyExistsErr` dotyczy tylko duplikatu w obrębie jednego procesu. Obsługa błędu zostaje jako zabezpieczenie przed awarią samego API |
+| 2026-08-05 | 4 | Ikona `AppIcon.icns` generowana skryptem `scripts/make_icon.swift` (AppKit + `iconutil`), nie ręcznie w edytorze graficznym | na maszynie nie ma Xcode ani narzędzi graficznych; `iconutil` i `NSBitmapImageRep` są częścią systemu, a wersja z generatora wystarcza do etapu 6, w którym powstanie finalna ikona |
 | 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |

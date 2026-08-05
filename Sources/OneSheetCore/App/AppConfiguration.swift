@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 
 /// Jedyne miejsce ze stałymi konfiguracyjnymi aplikacji.
@@ -40,6 +41,32 @@ enum AppConfiguration {
         /// (kolizja z zaznaczaniem tekstu), więc to jedyny uchwyt do przeciągania —
         /// i dlatego edytor musi zaczynać się dopiero pod nim.
         static let dragStripHeight: CGFloat = 28
+    }
+
+    enum HotKey {
+        /// Globalny skrót otwierania panelu: `⌥⌘N`. Kody i maski pochodzą z Carbon
+        /// (`kVK_ANSI_N`, `optionKey`, `cmdKey`) — to inne stałe niż `NSEvent.ModifierFlags`
+        /// i nie wolno ich mieszać.
+        static let keyCode = UInt32(kVK_ANSI_N)
+        static let modifiers = UInt32(optionKey | cmdKey)
+
+        /// Sygnatura zdarzeń hot-key tej aplikacji — four-char code `OnSh`.
+        /// Carbon dostarcza zdarzenia wszystkim zainstalowanym uchwytom w procesie,
+        /// więc uchwyt musi umieć rozpoznać własne.
+        static let signature: OSType = 0x4F6E5368
+
+        /// Zapis do pokazania użytkownikowi, np. w komunikacie o zajętym skrócie.
+        static let displayName = "⌥⌘N"
+    }
+
+    enum Defaults {
+        /// Zamiar użytkownika co do autostartu. Stanu **nie** czytamy z tej flagi
+        /// (źródłem prawdy jest `SMAppService.mainApp.status`) — flaga odnotowuje
+        /// głównie to, że pierwsze uruchomienie już włączyło autostart.
+        static let launchAtLogin = "launchAtLogin"
+
+        /// Wyłącznik skrótu globalnego. Brak wartości znaczy „włączony".
+        static let hotKeyEnabled = "hotKeyEnabled"
     }
 
     enum Editor {

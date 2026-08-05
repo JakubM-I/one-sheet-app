@@ -34,12 +34,14 @@ cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 if [[ -f "$ROOT/scripts/AppIcon.icns" ]]; then
 	cp "$ROOT/scripts/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 else
-	echo "    (ikona AppIcon.icns jeszcze nie istnieje — powstaje w etapie 6)"
+	echo "    UWAGA: brak scripts/AppIcon.icns — wygeneruj przez: swift scripts/make_icon.swift" >&2
 fi
 
 # Podpis ad-hoc. Bez niego macOS traktuje pakiet jako niezaufany przy każdym
-# przeniesieniu, a SMAppService w etapie 4 w ogóle odmówi rejestracji.
+# przeniesieniu, a SMAppService (autostart) w ogóle odmówi rejestracji.
+# `--options runtime` (hardened runtime) zgodnie ze specyfikacją, sekcja 5 —
+# aplikacja używa wyłącznie bibliotek systemowych, więc nic jej to nie ogranicza.
 echo "==> Podpisywanie (ad-hoc)"
-codesign --force --sign - "$APP"
+codesign --force --sign - --options runtime "$APP"
 
 echo "==> Gotowe: $APP"

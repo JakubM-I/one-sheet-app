@@ -296,7 +296,7 @@ Kluczowe wpisy `Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.
 | Ryzyko | Skutek | Plan |
 |---|---|---|
 | Panel nieaktywujący nie przyjmuje klawiatury | nie da się pisać | fallback: `NSApp.activate()` przy otwarciu panelu, kosztem odbierania fokusu innej aplikacji |
-| `RegisterEventHotKey` niedostępne / skrót zajęty | brak globalnego skrótu | wykrycie błędu rejestracji, wyłączenie funkcji i wpis w menu kontekstowym; aplikacja działa dalej przez klik w ikonę |
+| `RegisterEventHotKey` niedostępne / skrót zajęty | brak globalnego skrótu | wykrycie błędu rejestracji, wyłączenie funkcji i wpis w menu kontekstowym; aplikacja działa dalej przez klik w ikonę. **Pomiar 2026-08-05 (etap 4):** rejestracja tej samej kombinacji w drugim procesie zwraca `noErr` — konflikt między aplikacjami nie objawia się błędem; `eventHotKeyExistsErr` dotyczy tylko duplikatu w obrębie procesu. Obsługa zostaje na wypadek awarii samego API |
 | `SMAppService` odrzuca podpis ad-hoc | brak autostartu | jawny komunikat w menu; alternatywa: ręczne dodanie w Ustawieniach systemowych |
 | ~~Lokalny monitor zdarzeń przechwytuje skróty innych aplikacji~~ | — | **Ryzyko zniknęło** wraz z decyzją o ukrytym menu głównym (sekcja 3.3). `performKeyEquivalent` dotyczy wyłącznie zdarzeń dostarczonych do naszej aplikacji, więc nie ma czego przechwytywać |
 | Utrata danych przy awarii w trakcie zapisu | utrata notatki | zapis atomowy + backup + plik `.corrupted` zamiast nadpisania |
