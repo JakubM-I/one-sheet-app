@@ -67,6 +67,12 @@ enum AppConfiguration {
 
         /// Wyłącznik skrótu globalnego. Brak wartości znaczy „włączony".
         static let hotKeyEnabled = "hotKeyEnabled"
+
+        /// Ścieżka pakietu, z której ostatnio udała się rejestracja autostartu.
+        /// Wpis login item w systemie trzyma ścieżkę, nie identyfikator — po przeniesieniu
+        /// aplikacji (instalacja do `/Applications`) porównanie z tą wartością wykrywa
+        /// przeprowadzkę i wyzwala ponowną rejestrację. Szczegóły w `LaunchAtLogin`.
+        static let registeredBundlePath = "registeredBundlePath"
     }
 
     enum Editor {

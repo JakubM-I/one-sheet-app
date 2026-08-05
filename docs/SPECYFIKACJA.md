@@ -250,6 +250,7 @@ zamiast być nadpisanym.
 | `NSWindow Frame NotePanel` | String | zarządzane przez AppKit |
 | `launchAtLogin` | Bool | `true` po pierwszym uruchomieniu |
 | `hotKeyEnabled` | Bool | `true` |
+| `registeredBundlePath` | String | ścieżka pakietu z ostatniej udanej rejestracji autostartu (etap 6, sekcja 4) |
 
 ## 4. Uruchamianie przy logowaniu
 
@@ -258,6 +259,23 @@ podpisana i uruchamiana z pakietu `.app` — **nie zadziała dla binarki spod `s
 Dlatego etap 4 workflow zaczyna się od podpisu ad-hoc (`codesign -s - --force --deep`).
 Stan przełącznika czytamy z `SMAppService.mainApp.status`, nie z własnej flagi w `UserDefaults`
 (źródłem prawdy jest system; flaga to tylko cache do rysowania menu).
+
+**Przeniesienie pakietu (etap 6, zmierzone 2026-08-05).** Wpis autostartu w bazie Background
+Task Management trzyma **ścieżkę** pakietu (`sfltool dumpbtm` → pole URL), więc po instalacji
+do `/Applications` logowanie uruchamiałoby starą kopię z repozytorium. Dwa pomiary na żywym
+systemie:
+
+1. `SMAppService.mainApp.status` z nowej lokalizacji **nadal zwraca `.enabled`** — dopasowuje
+   po identyfikatorze pakietu, więc statusem nie da się wykryć przeprowadzki.
+2. Ponowna `register()` z nowej lokalizacji **aktualizuje istniejący wpis w miejscu** — ten sam
+   UUID, nowy URL, `Generation` rośnie. Nie powstaje duplikat.
+
+Stąd mechanizm w `LaunchAtLogin.reconcileOnLaunch()`: ścieżka ostatniej udanej rejestracji
+jest zapamiętywana w `UserDefaults` (`registeredBundlePath`); gdy przy starcie różni się od
+`Bundle.main.bundlePath`, rejestracja jest ponawiana. Naprawa działa wyłącznie dla kopii
+w `/Applications` — kopia robocza z repozytorium (np. spod `scripts/run.sh`) nie może
+„ukraść" autostartu zainstalowanej aplikacji — i wyłącznie przy statusie `.enabled`, żeby
+nie nadpisywać decyzji użytkownika podjętej w Ustawieniach systemowych.
 
 ## 5. Budowanie i pakowanie
 
@@ -278,6 +296,15 @@ Kluczowe wpisy `Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.
 
 `Package.swift`: jeden `.executableTarget(name: "OneSheet")`, platforma `.macOS("26.0")`,
 `swiftSettings: [.swiftLanguageMode(.v6)]`.
+
+`scripts/install.sh` (etap 6): `bundle.sh release` → zatrzymanie działającej instancji →
+podmiana `/Applications/OneSheet.app` → `open`. Rejestrację autostartu na nową ścieżkę
+przepisuje sama aplikacja przy pierwszym starcie z nowej lokalizacji (sekcja 4).
+
+**Notaryzacja — poza zakresem.** Podpis ad-hoc wystarcza, dopóki aplikacja jest budowana
+i używana na tej samej maszynie. Gatekeeper blokowałby dopiero pakiet przeniesiony na inny
+komputer — a wtedy potrzebny jest podpis Developer ID (płatne konto) i notaryzacja. MVP
+świadomie zostaje przy „sklonuj i zbuduj na miejscu".
 
 ## 6. Wydajność
 

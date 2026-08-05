@@ -27,6 +27,7 @@ swift build                    # kompilacja
 ./scripts/test.sh              # testy (swift-testing) — nie `swift test`, patrz niżej
 ./scripts/bundle.sh [debug|release]   # złożenie OneSheet.app + podpis ad-hoc
 ./scripts/run.sh [debug|release]      # bundle + zabicie starej instancji + uruchomienie
+./scripts/install.sh           # bundle release + podmiana kopii w /Applications + uruchomienie
 killall OneSheet               # zatrzymanie (do etapu 4 nie ma pozycji „Zakończ")
 ```
 

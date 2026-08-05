@@ -1,16 +1,24 @@
 #!/usr/bin/env swift
 //
-// Generuje scripts/AppIcon.icns — ikonę aplikacji dla Findera, Docka (nieużywanego)
-// i listy Elementów logowania. Prosty motyw kartki z liniami; finalna ikona powstaje
-// w etapie 6, ta wersja istnieje, żeby autostart nie pokazywał pustej ikony.
+// Generuje scripts/AppIcon.icns — finalną ikonę aplikacji (etap 6) dla Findera,
+// listy Elementów logowania i /Applications. Motyw: jedna kartka papieru z liniami
+// tekstu, wypełniająca siatkę ikon macOS.
 //
 // Uruchamianie (jednorazowe, wynik trafia do repozytorium):
 //   swift scripts/make_icon.swift
 //
-// Wymaga tylko systemowych narzędzi: AppKit do rysowania, iconutil (/usr/bin/iconutil,
-// część macOS, nie Xcode) do złożenia .icns z zestawu PNG.
+// Wymaga tylko systemowych narzędzi: AppKit do rysowania, SwiftUI do kształtu
+// (patrz niżej), iconutil (/usr/bin/iconutil, część macOS, nie Xcode) do złożenia
+// .icns z zestawu PNG.
+//
+// Dlaczego SwiftUI w skrypcie rysującym: maska ikon macOS to zaokrąglony kwadrat
+// o „ciągłej" krzywiźnie rogów (superelipsa Apple), a jedyne publiczne API oddające
+// dokładnie ten kształt to `RoundedRectangle(cornerRadius:style:.continuous)`.
+// `NSBezierPath(roundedRect:)` daje rogi kołowe — przy pełnowymiarowej ikonie
+// różnica jest widoczna jako „twarde" przejście łuku w prostą.
 
 import AppKit
+import SwiftUI
 
 /// Rysuje ikonę na płótnie o podanym boku (w pikselach) i zwraca PNG.
 func renderIcon(side: Int) -> Data? {
@@ -34,22 +42,33 @@ func renderIcon(side: Int) -> Data? {
 
     let s = CGFloat(side)
 
-    // Kartka: zaokrąglony kwadrat z marginesem ~10% (klasyczna siatka ikon macOS).
-    let cardRect = NSRect(x: 0.10 * s, y: 0.10 * s, width: 0.80 * s, height: 0.80 * s)
-    let cornerRadius = 0.185 * cardRect.width
-    let card = NSBezierPath(roundedRect: cardRect, xRadius: cornerRadius, yRadius: cornerRadius)
+    // Siatka ikon macOS: kwadrat 824/1024 wyśrodkowany na płótnie, promień rogów
+    // ~22,5% boku. Margines wokół zostaje przezroczysty — jest częścią formatu,
+    // nie „pustym miejscem".
+    let cardSide = 824.0 / 1024.0 * s
+    let cardRect = NSRect(
+        x: (s - cardSide) / 2,
+        y: (s - cardSide) / 2,
+        width: cardSide,
+        height: cardSide
+    )
+    let cornerRadius = 185.0 / 824.0 * cardSide
+    let cardPath = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        .path(in: cardRect)
+    let card = NSBezierPath(cgPath: cardPath.cgPath)
 
     // Delikatny cień pod kartką, żeby nie zlewała się z jasnym tłem Findera.
     let shadow = NSShadow()
-    shadow.shadowColor = NSColor.black.withAlphaComponent(0.25)
-    shadow.shadowBlurRadius = 0.035 * s
-    shadow.shadowOffset = NSSize(width: 0, height: -0.018 * s)
+    shadow.shadowColor = NSColor.black.withAlphaComponent(0.22)
+    shadow.shadowBlurRadius = 0.024 * s
+    shadow.shadowOffset = NSSize(width: 0, height: -0.012 * s)
     shadow.set()
 
-    // Tło kartki: pionowy gradient papieru.
+    // Tło kartki: pionowy gradient papieru — cieplejsza biel u góry, chłodniejsza
+    // szarość u dołu, jak światło padające na kartkę.
     let gradient = NSGradient(
-        starting: NSColor(calibratedRed: 1.00, green: 1.00, blue: 1.00, alpha: 1),
-        ending: NSColor(calibratedRed: 0.93, green: 0.93, blue: 0.95, alpha: 1)
+        starting: NSColor(calibratedRed: 1.00, green: 1.00, blue: 0.99, alpha: 1),
+        ending: NSColor(calibratedRed: 0.91, green: 0.92, blue: 0.94, alpha: 1)
     )
     gradient?.draw(in: card, angle: -90)
 
@@ -57,24 +76,28 @@ func renderIcon(side: Int) -> Data? {
     NSShadow().set()
 
     // Obwódka — bez niej biała kartka znika na białym tle.
-    NSColor.black.withAlphaComponent(0.12).setStroke()
-    card.lineWidth = max(1, 0.008 * s)
+    NSColor.black.withAlphaComponent(0.10).setStroke()
+    card.lineWidth = max(1, 0.006 * s)
     card.stroke()
 
-    // Linie tekstu jak w symbolu `note.text`: pierwsza ciemniejsza („tytuł"), reszta szara.
-    let lineHeight = 0.045 * s
-    let leftEdge = 0.235 * s
-    let widths: [CGFloat] = [0.42, 0.53, 0.53, 0.36]
-    let colors: [NSColor] = [
-        NSColor(calibratedWhite: 0.22, alpha: 1),
-        NSColor(calibratedWhite: 0.55, alpha: 1),
-        NSColor(calibratedWhite: 0.55, alpha: 1),
-        NSColor(calibratedWhite: 0.55, alpha: 1),
-    ]
-    for (index, width) in widths.enumerated() {
-        let y = 0.66 * s - CGFloat(index) * 0.115 * s
+    // Linie tekstu: pierwsza dłuższa i ciemniejsza („tytuł" notatki), pod nią akapit
+    // z szarych linii o nierównych szerokościach — równe końce wyglądałyby jak tabela,
+    // nie jak pismo. Zaokrąglone końce nawiązują do linii w symbolu `note.text` z belki.
+    let leftEdge = 0.22 * s
+    let titleHeight = 0.052 * s
+    let lineHeight = 0.038 * s
+    let titleColor = NSColor(calibratedWhite: 0.24, alpha: 1)
+    let bodyColor = NSColor(calibratedWhite: 0.62, alpha: 1)
+
+    let title = NSRect(x: leftEdge, y: 0.655 * s, width: 0.40 * s, height: titleHeight)
+    titleColor.setFill()
+    NSBezierPath(roundedRect: title, xRadius: titleHeight / 2, yRadius: titleHeight / 2).fill()
+
+    let bodyWidths: [CGFloat] = [0.56, 0.49, 0.56, 0.33]
+    for (index, width) in bodyWidths.enumerated() {
+        let y = 0.545 * s - CGFloat(index) * 0.093 * s
         let lineRect = NSRect(x: leftEdge, y: y, width: width * s, height: lineHeight)
-        colors[index].setFill()
+        bodyColor.setFill()
         NSBezierPath(roundedRect: lineRect, xRadius: lineHeight / 2, yRadius: lineHeight / 2).fill()
     }
 

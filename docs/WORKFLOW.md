@@ -267,19 +267,41 @@ monitor: otwórz panel na nim, odłącz kabel, sprawdź, że panel wskoczył na 
 
 ---
 
-## Etap 6 — Wykończenie i instalacja ⬜
+## Etap 6 — Wykończenie i instalacja ✅ (czeka na weryfikację ręczną)
 
 **Cel:** aplikacja gotowa do codziennego użycia.
 
 **Zakres**
-- finalna ikona (belka + Dock/Finder)
-- `scripts/install.sh` — kopia `OneSheet.app` do `/Applications`
+- finalna ikona (belka + Dock/Finder) — belka zostaje przy szablonowym SF Symbol `note.text`
+  (decyzja z etapu 0, wygląd potwierdzony); finalna ikona Findera/Elementów logowania
+  z przepisanego generatora `scripts/make_icon.swift`: pełna siatka ikon macOS, kształt maski
+  z `RoundedRectangle(style: .continuous)`
+- `scripts/install.sh` — build release + podmiana kopii w `/Applications` + uruchomienie
+- **rozszerzenie zakresu (2026-08-05):** `LaunchAtLogin.reconcileOnLaunch()` — ponowna
+  rejestracja autostartu po przeniesieniu pakietu. Bez tego logowanie uruchamiałoby kopię
+  z repozytorium: wpis login item trzyma ścieżkę, a `SMAppService.mainApp.status` przeprowadzki
+  nie wykrywa (pomiary w rejestrze decyzji i specyfikacji, sekcja 4)
 - krótkie `README.md`: instalacja, skróty, gdzie leżą dane, jak zrobić kopię zapasową
-- decyzja o notaryzacji (potrzebna tylko przy przenoszeniu na inny Mac — poza zakresem MVP)
+- decyzja o notaryzacji: **poza zakresem MVP** — ad-hoc wystarcza na maszynie, na której
+  zbudowano; wpis w rejestrze decyzji i w specyfikacji, sekcja 5
 
 **Definicja ukończenia**
-- aplikacja zainstalowana w `/Applications`, uruchamia się przy logowaniu
-- tydzień codziennego użycia bez utraty danych i bez ręcznego restartu
+- ✅ czysta przebudowa bez ostrzeżeń, `./scripts/test.sh` — 65 testów przechodzi
+  (6 nowych: decyzja naprawy rejestracji autostartu)
+- ✅ aplikacja zainstalowana przez `./scripts/install.sh` w `/Applications` i uruchomiona
+  stamtąd; wpis autostartu w bazie systemu (`sfltool dumpbtm`) wskazuje
+  `/Applications/OneSheet.app` — sprawdzone na żywym systemie 2026-08-05
+- ⬜ finalna ikona zaakceptowana wizualnie (Finder, belka, Elementy logowania) — człowiek
+- ⬜ ikona pojawia się sama po restarcie Maca, już z kopii w `/Applications` — przy
+  najbliższym restarcie (domyka też zaległość z etapów 4–5)
+- ⬜ zaległa weryfikacja z etapu 5: dwa monitory, Spaces, pełny ekran innej aplikacji
+- ⬜ tydzień codziennego użycia bez utraty danych i bez ręcznego restartu
+
+**Weryfikacja ręczna:** `./scripts/install.sh`, obejrzyj ikonę w Finderze (`/Applications`)
+i w Ustawieniach → Elementy logowania, przejdź smoke test z CLAUDE.md na zainstalowanej
+kopii, zrestartuj Maca i sprawdź, że ikona wróciła sama; potem po prostu używaj przez tydzień.
+
+**Podsumowanie:** [podsumowania/etap_6_podsumowanie.md](podsumowania/etap_6_podsumowanie.md)
 
 ---
 
@@ -313,4 +335,7 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-05 | 5 | Zmienna środowiskowa `ONESHEET_DATA_DIRECTORY` przekierowuje katalog danych (`NoteFileLayout`) | stanowisko testu długiej notatki nie może ryzykować prawdziwej notatki, a podmiana `HOME` nie działa: na macOS 26 `FileManager` wyznacza katalog domowy z bazy użytkowników i ignoruje zmienną — sprawdzone pomiarem. Do tego `open` nie przekazuje zmiennych środowiskowych, stąd stanowisko uruchamia binarkę bezpośrednio |
 | 2026-08-05 | 5 | Korekta ramki panelu przy `NSApplication.didChangeScreenParametersNotification` | dotąd ramka była przycinana tylko przy pokazywaniu panelu; panel stojący otwarty na odłączanym monitorze mógł zostać poza wszystkimi ekranami. Wywoływana jest istniejąca, przetestowana `PanelGeometry.clamped(_:to:)` — zero nowej arytmetyki |
 | 2026-08-05 | 5 | Suita `PanelOpenPerfTests` bramkowana zmienną `ONESHEET_PANEL_PERF=1` | tworzy prawdziwe okno (wymaga serwera okien, miga panelem na ekranie); zwykły przebieg `./scripts/test.sh` ma pozostać bezokienny |
+| 2026-08-05 | 6 | Bez notaryzacji i podpisu Developer ID | aplikacja jest budowana i używana na tej samej maszynie — Gatekeeper nie sprawdza lokalnych buildów; notaryzacja miałaby sens dopiero przy przenoszeniu gotowego pakietu na inny Mac, a wtedy właściwą drogą jest „sklonuj i zbuduj na miejscu" |
+| 2026-08-05 | 6 | `LaunchAtLogin.reconcileOnLaunch()` — naprawa rejestracji autostartu po przeniesieniu pakietu (rozszerzenie zakresu etapu) | pomiar na żywym systemie: wpis w bazie Background Task Management trzyma **ścieżkę** pakietu, `SMAppService.mainApp.status` z nowej lokalizacji dalej zwraca `.enabled` (dopasowanie po identyfikatorze), a ponowna `register()` aktualizuje wpis w miejscu (ten sam UUID, nowy URL). Bez naprawy logowanie po instalacji uruchamiałoby kopię z repozytorium. Warunki: tylko kopia w `/Applications`, tylko przy statusie `.enabled` — kopia robocza nie kradnie autostartu, a decyzja użytkownika z Ustawień systemowych zostaje uszanowana |
+| 2026-08-05 | 6 | Finalna ikona nadal z generatora, kształt maski przez `SwiftUI.RoundedRectangle(style: .continuous).path(in:)` | jedyne publiczne API oddające dokładnie superelipsę Apple; `NSBezierPath(roundedRect:)` daje rogi kołowe, widocznie „twardsze" przy pełnowymiarowej ikonie. Wersja robocza pływała małą kartką na przezroczystym tle — finalna wypełnia siatkę ikon macOS (824/1024, promień ~22,5%) |
 | 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |

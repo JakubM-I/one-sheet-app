@@ -58,7 +58,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController = controller
 
         registerGlobalHotKey()
-        launchAtLogin.enableOnFirstLaunch()
+        launchAtLogin.reconcileOnLaunch()
 
         Log.app.info("Aplikacja uruchomiona")
     }
