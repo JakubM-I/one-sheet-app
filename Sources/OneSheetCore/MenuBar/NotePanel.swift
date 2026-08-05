@@ -8,6 +8,10 @@ import AppKit
 @MainActor
 final class NotePanel: NSPanel {
 
+    /// Wywoływane po schowaniu panelu. Nie jest to jedyny moment zapisu — panel potrafi
+    /// stać otwarty tygodniami — ale jest to moment, w którym zapis na pewno wypada zrobić.
+    var onHide: (() -> Void)?
+
     private let editorViewController: EditorViewController
 
     /// Czy okno ma już ustaloną pozycję — z `UserDefaults` albo z pierwszego otwarcia.
@@ -30,6 +34,7 @@ final class NotePanel: NSPanel {
         configureWindow()
         configureContent()
         restoreFrame()
+        observeScreenChanges()
     }
 
     // Panel musi móc zostać oknem kluczowym, inaczej nie przyjmie klawiatury.
@@ -49,6 +54,10 @@ final class NotePanel: NSPanel {
     }
 
     func present(below anchor: NSRect?) {
+        // Pomiar całej drogi od wywołania do gotowości na pisanie — budżet ze specyfikacji
+        // (sekcja 6) to 150 ms. Wpis w logu pozwala złapać regresję bez profilera.
+        let start = ContinuousClock.now
+
         positionBeforeShowing(below: anchor)
 
         // `makeKeyAndOrderFront(_:)` z aplikacji nieaktywnej potrafi nie wysunąć okna
@@ -57,11 +66,18 @@ final class NotePanel: NSPanel {
         makeKey()
         editorViewController.focusText()
 
-        Log.panel.info("Panel pokazany (klucz: \(self.isKeyWindow, privacy: .public))")
+        let elapsed = start.duration(to: .now)
+        let milliseconds = Double(elapsed.components.seconds) * 1000
+            + Double(elapsed.components.attoseconds) / 1e15
+        Log.panel.info("""
+            Panel pokazany w \(milliseconds, format: .fixed(precision: 1), privacy: .public) ms \
+            (klucz: \(self.isKeyWindow, privacy: .public))
+            """)
     }
 
     func hide() {
         orderOut(nil)
+        onHide?()
         Log.panel.info("Panel schowany")
     }
 
@@ -92,10 +108,13 @@ final class NotePanel: NSPanel {
         // Przeciąganie za tło kolidowałoby z zaznaczaniem tekstu — zostaje górny pas.
         isMovableByWindowBackground = false
 
-        // Tło maluje `NSVisualEffectView`; okno musi być przezroczyste, żeby rozmycie
-        // sięgało zawartości pod spodem, a rogi okna nie były podbite prostokątem.
-        isOpaque = false
-        backgroundColor = .clear
+        // Jednolite tło zamiast efektu szkła (rejestr decyzji, 2026-08-05): rozmycie
+        // przepuszczało zawartość spod okna i psuło czytelność notatki, zwłaszcza
+        // w jasnym motywie. `.textBackgroundColor` to dynamiczny kolor tła dokumentu —
+        // biały w jasnym motywie, grafitowy w ciemnym; zaokrąglenie rogów zostaje
+        // przy systemie, jak w każdym oknie `.titled`.
+        isOpaque = true
+        backgroundColor = .textBackgroundColor
         hasShadow = true
 
         // Panel jest tworzony raz i tylko chowany. Bez tego zamknięcie okna zwolniłoby
@@ -112,29 +131,23 @@ final class NotePanel: NSPanel {
     }
 
     private func configureContent() {
-        let background = NSVisualEffectView()
-        background.material = .popover
-        // `.behindWindow` rozmywa to, co jest **pod** oknem. `.withinWindow` rozmywałoby
-        // własną zawartość panelu, czyli tekst notatki.
-        background.blendingMode = .behindWindow
-        // `.active` wymusza pełne rozmycie także wtedy, gdy aplikacja jest nieaktywna —
-        // a nasza jest nieaktywna niemal zawsze.
-        background.state = .active
-        contentView = background
+        // Zwykły widok-kontener — tło rysuje samo okno (`backgroundColor` wyżej).
+        let container = NSView()
+        contentView = container
 
         let editorView = editorViewController.view
         editorView.translatesAutoresizingMaskIntoConstraints = false
-        background.addSubview(editorView)
+        container.addSubview(editorView)
         NSLayoutConstraint.activate([
             // Górny odstęp to niewidoczny pasek tytułu: pod nim tekst byłby zasłonięty
             // przez obszar przeciągania i nie dałoby się w niego kliknąć.
             editorView.topAnchor.constraint(
-                equalTo: background.topAnchor,
+                equalTo: container.topAnchor,
                 constant: AppConfiguration.Panel.dragStripHeight
             ),
-            editorView.leadingAnchor.constraint(equalTo: background.leadingAnchor),
-            editorView.trailingAnchor.constraint(equalTo: background.trailingAnchor),
-            editorView.bottomAnchor.constraint(equalTo: background.bottomAnchor),
+            editorView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            editorView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            editorView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
         ])
     }
 
@@ -155,10 +168,16 @@ final class NotePanel: NSPanel {
         guard let visibleFrame = targetScreen(for: anchor)?.visibleFrame else { return }
 
         if hasResolvedFrame {
-            // Ramka z poprzedniej sesji mogła pochodzić z monitora, którego już nie ma.
-            let corrected = PanelGeometry.clamped(frame, to: visibleFrame)
+            // Ramka z poprzedniej sesji mogła pochodzić z innego monitora — podłączonego
+            // (wtedy panel wraca pod klikniętą ikonę) albo już odłączonego.
+            let corrected = PanelGeometry.presentationFrame(
+                saved: frame,
+                anchor: anchor,
+                visibleFrame: visibleFrame,
+                gap: AppConfiguration.Panel.gapBelowStatusItem
+            )
             if corrected != frame {
-                Log.panel.info("Zapamiętana ramka wykraczała poza ekran — skorygowana")
+                Log.panel.info("Zapamiętana ramka nie pasowała do ekranu docelowego — skorygowana")
                 setFrame(corrected, display: false)
             }
         } else {
@@ -182,5 +201,34 @@ final class NotePanel: NSPanel {
         return NSScreen.screens.first { $0.frame.intersects(anchor) }
             ?? NSScreen.main
             ?? NSScreen.screens.first
+    }
+
+    // MARK: - Zmiany układu ekranów
+
+    /// Odłączenie monitora lub zmiana rozdzielczości przy **schowanym** panelu jest już
+    /// obsłużona — `positionBeforeShowing` przycina ramkę przy każdym pokazaniu. Ta ścieżka
+    /// domyka drugą połowę: panel stojący otwarty na monitorze, który właśnie zniknął,
+    /// nie może zostać poza wszystkimi ekranami.
+    private func observeScreenChanges() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+    }
+
+    @objc private func screenParametersDidChange() {
+        guard isVisible else { return }
+        // `screen` bywa `nil`, gdy okno wisi poza wszystkimi ekranami — czyli dokładnie
+        // w przypadku, przed którym się bronimy. Wtedy przyciągamy do ekranu głównego.
+        guard let visibleFrame = (screen ?? NSScreen.main ?? NSScreen.screens.first)?.visibleFrame else {
+            return
+        }
+        let corrected = PanelGeometry.clamped(frame, to: visibleFrame)
+        if corrected != frame {
+            Log.panel.info("Zmiana układu ekranów — ramka panelu wsunięta w widoczny obszar")
+            setFrame(corrected, display: true)
+        }
     }
 }

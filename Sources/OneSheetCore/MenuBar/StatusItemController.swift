@@ -56,6 +56,17 @@ final class StatusItemController {
         Log.menuBar.info("Ikona statusu utworzona (symbol: \(AppConfiguration.StatusItem.symbolName, privacy: .public))")
     }
 
+    /// Pokazuje menu kontekstowe zakotwiczone pod ikoną.
+    ///
+    /// `NSStatusItem.menu` ustawione na stałe przechwytywałoby również lewy przycisk
+    /// i `onPrimaryAction` przestałoby przychodzić — dlatego menu jest podpinane tylko
+    /// na czas `performClick(_:)` (który rozwija je synchronicznie) i zaraz zdejmowane.
+    func showMenu(_ menu: NSMenu) {
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
     @objc private func handleClick() {
         // Rodzaj kliknięcia nie jest przekazywany w akcji — trzeba go odczytać
         // z bieżącego zdarzenia aplikacji.

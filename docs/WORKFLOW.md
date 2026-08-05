@@ -27,7 +27,7 @@ Legenda statusów: `⬜ do zrobienia` · `🟨 w toku` · `✅ ukończony`
 - struktura katalogów zgodna z CLAUDE.md
 - `Resources/Info.plist` z `LSUIElement`
 - `scripts/bundle.sh`, `scripts/run.sh`, `scripts/test.sh`
-- własny harness testowy (Command Line Tools nie mają XCTest — patrz rejestr decyzji)
+- ~~własny harness testowy~~ — zastąpiony przez swift-testing 2026-08-04, patrz rejestr decyzji
 - `AppDelegate` + `StatusItemController` z ikoną SF Symbol `note.text`
 - klik w ikonę wypisuje wpis do `os.Logger` (jeszcze bez panelu)
 - ~~`.gitignore`~~ — utworzony wcześniej, przed inicjalizacją repozytorium
@@ -75,6 +75,7 @@ podglądzie logów, przełącz motyw systemu, zamknij przez `killall OneSheet`.
   i przejściu na inne biurko — potwierdzone 2026-08-04
 - ✅ panel nie znika w trakcie pisania i nie kradnie fokusu innym aplikacjom przy starcie — potwierdzone 2026-08-04
 - ✅ wygląd: rozmycie tła, rogi okna, jasny i ciemny motyw — potwierdzone 2026-08-04
+  (rozmycie wycofane 2026-08-05 na rzecz jednolitego tła — patrz rejestr decyzji)
 
 **Ryzyko etapu — nie zmaterializowało się.** Panel nieaktywujący (`.nonactivatingPanel`) przyjmuje
 klawiaturę bez aktywowania aplikacji. Plan awaryjny z sekcji 8 specyfikacji (`NSApp.activate()`
@@ -84,7 +85,7 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
 
 ---
 
-## Etap 2 — Trwałość ⬜
+## Etap 2 — Trwałość ✅ (zweryfikowany)
 
 **Cel:** treść przeżywa zamknięcie aplikacji.
 
@@ -99,89 +100,214 @@ przy otwarciu) nie był potrzebny i pozostaje niewykorzystany.
 - testy jednostkowe warstwy `Storage`
 
 **Definicja ukończenia**
-- wpisany tekst po `killall -9 OneSheet` (1 s po wpisaniu) jest na miejscu — również wtedy,
-  gdy panel przez cały czas pozostawał otwarty (zamknięcie panelu przestało być gwarantem zapisu)
-- ręczne uszkodzenie `note.rtfd` powoduje odtworzenie z backupu, nie utratę treści
-- ponowne otwarcie panelu przywraca pozycję kursora i przewinięcia
-- `swift test` zielony
+- ✅ `swift build` od zera bez ostrzeżeń, `./scripts/test.sh` — 27 testów przechodzi
+- ✅ wpisany tekst po `SIGKILL` (1,3 s po wpisaniu, bez żadnego `flush`) jest na miejscu —
+  sprawdzone na jednorazowym stanowisku testowym uruchamiającym prawdziwy `AppDelegate`
+- ✅ uszkodzenie `note.rtfd` powoduje odtworzenie z kopii zapasowej, a uszkodzony plik trafia
+  do `note.rtfd.corrupted-<ts>` zamiast zniknąć — sprawdzone na stanowisku testowym
+- ✅ ponowne uruchomienie przywraca treść, zaznaczenie i przewinięcie — sprawdzone na
+  stanowisku testowym (przewinięcie z dokładnością do ~2,5%, patrz podsumowanie)
+- ✅ treść przeżywa `killall -9` przy panelu otwartym przez cały czas — potwierdzone przez
+  użytkownika 2026-08-04
+- ✅ wklejony fragment zachowuje formatowanie po restarcie aplikacji — potwierdzone
+  przez użytkownika 2026-08-04
+- ✅ skróty `⌘V`, `⌘C`, `⌘X`, `⌘A`, `⌘Z`, `⇧⌘Z` działają w polu tekstu (defekt wykryty
+  przy weryfikacji etapu, naprawiony przez `MainMenu` — patrz rejestr decyzji)
+- ✅ treść przeżywa pełny restart Maca — potwierdzone przez użytkownika 2026-08-05
+  (notatka z poprzedniego dnia na miejscu po ponownym uruchomieniu komputera i aplikacji)
 
-**Weryfikacja ręczna:** wpisz zdanie, `killall -9 OneSheet`, uruchom ponownie. Powtórz z restartem Maca.
+**Weryfikacja ręczna:** wpisz zdanie, odczekaj sekundę, `killall -9 OneSheet`, uruchom ponownie.
+Powtórz bez zamykania panelu i z restartem Maca.
+
+**Podsumowanie:** [podsumowania/etap_2_podsumowanie.md](podsumowania/etap_2_podsumowanie.md)
 
 ---
 
-## Etap 3 — Formatowanie ⬜
+## Etap 3 — Formatowanie ✅ (czeka na weryfikację ręczną)
 
 **Cel:** jedyna funkcja aplikacji poza pisaniem.
 
-**Zakres**
-- `FormattingCommands` — lokalny monitor `keyDown` aktywny tylko dla `NotePanel`
-- pełna tabela skrótów z sekcji 3.3 specyfikacji
-- menu kontekstowe z tymi samymi operacjami
+**Zakres** — przepisany 2026-08-04 po ustaleniu z etapu 2, że ukryte menu główne działa
+(patrz rejestr decyzji i sekcja 3.3 specyfikacji). Zamiast lokalnego monitora `keyDown`:
+
+- rozszerzenie `MainMenu` o menu „Format" z pełną tabelą skrótów z sekcji 3.3 specyfikacji
+- standardowe selektory tam, gdzie AppKit je ma (`addFontTrait:`, `modifyFont:`, `underline:`,
+  `alignLeft:`, `alignCenter:`, `pasteAsPlainText:`) — bez pisania własnego kodu
+- `FormattingCommands` jako obiekt docelowy dla trzech operacji bez odpowiednika w AppKit:
+  przekreślenie (`⌃⌘K`), lista punktowana (`⌃⌘L`), usunięcie formatowania (`⌃⌘\`)
+- menu kontekstowe budowane z **tych samych** pozycji, żeby lista skrótów i lista pozycji
+  nie mogły się rozjechać
 - grupowanie operacji w `undoManager`, żeby jedno `⌘Z` cofało całą zmianę
-- wklejanie z formatowaniem i `⌥⇧⌘V` bez formatowania
+- `⌥⇧⌘V` — wklejenie bez formatowania (zwykłe `⌘V` działa od etapu 2)
 - kolory tekstu wiązane z `.labelColor` — poprawne po zmianie motywu
 
 **Definicja ukończenia**
-- każdy skrót z tabeli działa na zaznaczeniu i na `typingAttributes`
-- `⌘Z` cofa pojedynczą operację formatowania w całości
-- wklejenie fragmentu z Safari zachowuje pogrubienia i kursywę
-- żaden skrót nie działa, gdy panel jest zamknięty (sprawdź `⌘B` w innej aplikacji)
-- po przełączeniu na ciemny motyw cały tekst pozostaje czytelny
+- ✅ `swift build` od zera bez ostrzeżeń, `./scripts/test.sh` — 43 testy przechodzą,
+  aplikacja startuje i wczytuje istniejącą notatkę
+- ✅ trzy operacje własne (`⌃⌘K`, `⌃⌘L`, `⌃⌘\`) działają na zaznaczeniu i na
+  `typingAttributes` — pokryte testami `FormattingCommands`; skróty standardowe
+  (`⌘B`, `⌘I`, `⌘U`, `⌘+`/`⌘-`, `⌘{`/`⌘|`, `⌥⇧⌘V`) ⬜ wymagają ręcznego sprawdzenia
+- ✅ każda operacja formatowania wyzwala autozapis — ścieżka `didChangeText()` pokryta
+  testem licznika `textDidChange`, a mutacje z jej pominięciem łapie nasłuch
+  `NSTextStorage.didProcessEditingNotification` (też pod testem)
+- ✅ jedno `⌘Z` cofa operację własną w całości — pokryte testem; cofanie operacji
+  `NSFontManager` ⬜ do sprawdzenia ręcznie
+- ✅ zgodność menu (skróty, wykonawcy, tagi) z tabelą specyfikacji — pod testem `FormatMenu`
+- ✅ przekreślenie i `NSTextList` przeżywają serializację RTFD — pod testem
+- ✅ wklejenie sformatowanego fragmentu zachowuje formatowanie, łącznie z kolorem tła
+  tekstu — potwierdzone przez użytkownika 2026-08-05
+- ✅ po przełączeniu na ciemny motyw cały tekst pozostaje czytelny — potwierdzone
+  przez użytkownika 2026-08-05
+- ✅ znaczniki listy punktowanej rysują się poprawnie — potwierdzone przez użytkownika
+  2026-08-05
+- ⬜ żaden skrót nie działa, gdy panel jest zamknięty (sprawdź `⌘B` w innej aplikacji) — ręcznie
+
+**Weryfikacja ręczna:** otwórz panel, przejdź skróty z tabeli na zaznaczeniu i przy samym
+kursorze, cofnij każdą operację jednym `⌘Z`, wklej sformatowany fragment z Safari, sprawdź
+`⌘B` w innej aplikacji przy schowanym panelu, przełącz motyw systemu, zrób listę punktowaną
+i dopisz do niej akapit Enterem, na końcu `killall -9 OneSheet` sekundę po pogrubieniu
+i sprawdź, że pogrubienie przeżyło restart.
+
+**Podsumowanie:** [podsumowania/etap_3_podsumowanie.md](podsumowania/etap_3_podsumowanie.md)
 
 ---
 
-## Etap 4 — Integracja z systemem ⬜
+## Etap 4 — Integracja z systemem ✅ (zweryfikowany; restart Maca do sprawdzenia przy okazji)
 
 **Cel:** aplikacja zachowuje się jak stały element systemu.
 
 **Zakres**
-- podpis ad-hoc w `bundle.sh` (warunek działania `SMAppService`)
+- podpis ad-hoc w `bundle.sh` (warunek działania `SMAppService`), uzupełniony
+  o `--options runtime` zgodnie ze specyfikacją (sekcja 5)
 - `GlobalHotKey` przez `RegisterEventHotKey`, domyślnie `⌥⌘N`, z obsługą błędu rejestracji
 - menu kontekstowe ikony: „Uruchamiaj przy logowaniu" (stan z `SMAppService.mainApp.status`),
   „Zakończ"
-- `SMAppService.mainApp.register()` / `.unregister()`
-- ikona aplikacji `AppIcon.icns`
+- `SMAppService.mainApp.register()` / `.unregister()`, autostart domyślnie włączany
+  przy pierwszym uruchomieniu
+- ikona aplikacji `AppIcon.icns` (wersja robocza z generatora `scripts/make_icon.swift`;
+  finalna powstaje w etapie 6)
 
 **Definicja ukończenia**
-- `⌥⌘N` otwiera i zamyka panel z dowolnej aplikacji, bez proszenia o uprawnienia
-- po włączeniu autostartu i restarcie Maca ikona pojawia się sama
-- nieudana rejestracja skrótu nie wywraca aplikacji, tylko wyłącza funkcję z komunikatem
-- aplikacja widoczna w Ustawieniach systemowych → Elementy logowania
+- ✅ `swift build` od zera bez ostrzeżeń, `./scripts/test.sh` — 49 testów przechodzi,
+  aplikacja startuje i wczytuje istniejącą notatkę
+- ✅ `⌥⌘N` z innej aplikacji otwiera i chowa panel, kursor od razu w tekście,
+  bez proszenia o uprawnienia — potwierdzone przez użytkownika 2026-08-05
+- ✅ `SMAppService` przyjął podpis ad-hoc: pierwsze uruchomienie kończy się statusem
+  `.enabled` (ryzyko ze specyfikacji sekcja 8 nie zmaterializowało się);
+  ⬜ ikona pojawia się sama po restarcie Maca — użytkownik sprawdzi przy najbliższym
+  restarcie
+- ✅ nieudana rejestracja skrótu nie wywraca aplikacji — ścieżka błędu pod testami
+  `GlobalHotKey`; przy okazji pomiar: konflikt z inną aplikacją **nie** objawia się
+  błędem rejestracji (patrz rejestr decyzji), więc komunikat w menu to zabezpieczenie
+  na wypadek awarii samego API
+- ✅ aplikacja widoczna w Ustawieniach systemowych → Elementy logowania — potwierdzone
+  przez użytkownika 2026-08-05
+- ✅ menu kontekstowe: ptaszek autostartu odpowiada stanowi systemu, przełączenie
+  działa w obie strony, „Zakończ" kończy aplikację z zapisem notatki — potwierdzone
+  przez użytkownika 2026-08-05
+- ✅ robocza ikona aplikacji zaakceptowana (finalna powstaje w etapie 6) — potwierdzone
+  przez użytkownika 2026-08-05
+
+**Weryfikacja ręczna:** naciśnij `⌥⌘N` w innej aplikacji (panel się otwiera, drugie
+naciśnięcie chowa), kliknij ikonę prawym przyciskiem i przejdź obie pozycje menu,
+sprawdź listę w Ustawieniach systemowych → Ogólne → Elementy logowania, wyłącz
+i włącz autostart z menu, na końcu zrestartuj Maca i sprawdź, że ikona wróciła sama.
+
+**Podsumowanie:** [podsumowania/etap_4_podsumowanie.md](podsumowania/etap_4_podsumowanie.md)
 
 ---
 
-## Etap 5 — Hardening ⬜
+## Etap 5 — Hardening ✅ (zweryfikowany)
 
 **Cel:** aplikacja, której można zaufać z jedynym egzemplarzem swoich notatek.
 
 **Zakres**
-- test z notatką 50 000 i 200 000 znaków: otwarcie, przewijanie, zapis
-- profilowanie czasu otwarcia panelu (cel <150 ms)
-- przegląd wszystkich ścieżek błędu w `NoteStore` — żadna nie może kończyć się utratą danych
-- zachowanie przy dwóch monitorach i po zmianie rozdzielczości
-- zachowanie przy przełączaniu Spaces i w trybie pełnoekranowym innej aplikacji
-- usunięcie martwego kodu, ujednolicenie logowania
+- test z notatką 50 000 i 200 000 znaków: otwarcie, przewijanie, zapis — testy `LongNoteTests`
+  + stanowisko `scripts/longnote_stand.sh` (odizolowany katalog danych, prawdziwa notatka
+  nietknięta)
+- profilowanie czasu otwarcia panelu (cel <150 ms) — pomiar w `NotePanel.present` (wpis
+  w logu) + bramkowana suita `PanelOpenPerfTests` (`ONESHEET_PANEL_PERF=1 ./scripts/test.sh`)
+- przegląd wszystkich ścieżek błędu w `NoteStore` — żadna nie może kończyć się utratą danych;
+  wnioski i nowe testy w `NoteStoreErrorPathTests`
+- zachowanie przy dwóch monitorach i po zmianie rozdzielczości — dopisana korekta ramki
+  na `didChangeScreenParametersNotification` (panel otwarty na odłączanym monitorze)
+- zachowanie przy przełączaniu Spaces i w trybie pełnoekranowym innej aplikacji —
+  konfiguracja z etapu 1, do potwierdzenia ręcznie
+- usunięcie martwego kodu, ujednolicenie logowania — przegląd nie znalazł martwego kodu
+  ani `print`; poprawiony nieaktualny komentarz w `GlobalHotKey` (sprostowanie z etapu 4)
 
 **Definicja ukończenia**
-- wszystkie kryteria akceptacji z [FUNKCJONALNOSCI.md](FUNKCJONALNOSCI.md) spełnione i sprawdzone
-- brak ostrzeżeń kompilatora
-- `swift test` zielony
+- ✅ czysta przebudowa od zera bez ostrzeżeń, `./scripts/test.sh` — 59 testów przechodzi
+- ✅ zapis/odczyt RTFD zmierzony: 200 000 znaków — 6,2 ms / 7,3 ms; 50 000 — 1,7 ms / 1,9 ms
+- ✅ otwarcie panelu z notatką 200 000 znaków i kursorem na końcu: pierwsze 41 ms
+  (jednorazowe rozłożenie tekstu do kursora), kolejne 3 ms — budżet 150 ms z zapasem
+- ✅ ścieżki błędu pod testami: zapis na katalogu tylko-do-odczytu nie rusza notatki,
+  zaległy zapis dokańcza sam `flush()`, osierocony plik roboczy nie blokuje zapisu,
+  kopia zapasowa rotuje, oba pliki nieczytelne → pusta kartka bez kasowania czegokolwiek,
+  kwarantanna bez kolizji nazw
+- ✅ stanowisko długiej notatki działa: aplikacja wczytała wygenerowane 200 000 znaków
+  (wpis w logu), katalog użytkownika nietknięty
+- kryteria akceptacji z [FUNKCJONALNOSCI.md](FUNKCJONALNOSCI.md): nr 3 i 4 potwierdzone
+  w etapach 2–3, nr 2 zmierzone wyżej; nr 1 (ikona po restarcie Maca) — wciąż czeka na
+  najbliższy restart; nr 5 (przewijanie 50 000+ bez zacięć) i nr 6 — patrz niżej
+- ✅ płynność przewijania notatki 200 000 znaków na stanowisku — potwierdzone przez
+  użytkownika 2026-08-05
+- ✅ dwa monitory: panel otwierany na drugim ekranie — sprawdzone przez użytkownika
+  2026-08-05 przy weryfikacji etapu 6. Wykryło defekt pozycjonowania (panel lądował przy
+  krawędzi zamiast pod ikoną), naprawiony przez `PanelGeometry.presentationFrame`;
+  pozycja po naprawie potwierdzona
+- ✅ Spaces i pełny ekran innej aplikacji — panel pozostaje widoczny; potwierdzone przez
+  użytkownika 2026-08-05
+
+**Weryfikacja ręczna:** `./scripts/longnote_stand.sh`, klik w ikonę, przewiń notatkę od
+początku do końca (płynność), wpisz coś na końcu; `log stream` pokaże `Panel pokazany
+w X ms`. Potem `killall OneSheet && ./scripts/run.sh` (powrót do prawdziwej notatki),
+przełącz Spaces z otwartym panelem, wejdź inną aplikacją w pełny ekran, podłącz drugi
+monitor: otwórz panel na nim, odłącz kabel, sprawdź, że panel wskoczył na główny ekran.
+
+**Podsumowanie:** [podsumowania/etap_5_podsumowanie.md](podsumowania/etap_5_podsumowanie.md)
 
 ---
 
-## Etap 6 — Wykończenie i instalacja ⬜
+## Etap 6 — Wykończenie i instalacja ✅ (czeka na weryfikację ręczną)
 
 **Cel:** aplikacja gotowa do codziennego użycia.
 
 **Zakres**
-- finalna ikona (belka + Dock/Finder)
-- `scripts/install.sh` — kopia `OneSheet.app` do `/Applications`
+- finalna ikona (belka + Dock/Finder) — belka zostaje przy szablonowym SF Symbol `note.text`
+  (decyzja z etapu 0, wygląd potwierdzony); finalna ikona Findera/Elementów logowania
+  z przepisanego generatora `scripts/make_icon.swift`: pełna siatka ikon macOS, kształt maski
+  z `RoundedRectangle(style: .continuous)`
+- `scripts/install.sh` — build release + podmiana kopii w `/Applications` + uruchomienie
+- **rozszerzenie zakresu (2026-08-05):** `LaunchAtLogin.reconcileOnLaunch()` — ponowna
+  rejestracja autostartu po przeniesieniu pakietu. Bez tego logowanie uruchamiałoby kopię
+  z repozytorium: wpis login item trzyma ścieżkę, a `SMAppService.mainApp.status` przeprowadzki
+  nie wykrywa (pomiary w rejestrze decyzji i specyfikacji, sekcja 4)
 - krótkie `README.md`: instalacja, skróty, gdzie leżą dane, jak zrobić kopię zapasową
-- decyzja o notaryzacji (potrzebna tylko przy przenoszeniu na inny Mac — poza zakresem MVP)
+- decyzja o notaryzacji: **poza zakresem MVP** — ad-hoc wystarcza na maszynie, na której
+  zbudowano; wpis w rejestrze decyzji i w specyfikacji, sekcja 5
 
 **Definicja ukończenia**
-- aplikacja zainstalowana w `/Applications`, uruchamia się przy logowaniu
-- tydzień codziennego użycia bez utraty danych i bez ręcznego restartu
+- ✅ czysta przebudowa bez ostrzeżeń, `./scripts/test.sh` — 65 testów przechodzi
+  (6 nowych: decyzja naprawy rejestracji autostartu)
+- ✅ aplikacja zainstalowana przez `./scripts/install.sh` w `/Applications` i uruchomiona
+  stamtąd; wpis autostartu w bazie systemu (`sfltool dumpbtm`) wskazuje
+  `/Applications/OneSheet.app` — sprawdzone na żywym systemie 2026-08-05
+- ✅ finalna ikona zaakceptowana wizualnie (Finder, `/Applications`) — potwierdzone przez
+  użytkownika 2026-08-05
+- ✅ zaległa weryfikacja z etapu 5: dwa monitory, Spaces, pełny ekran innej aplikacji —
+  potwierdzone przez użytkownika 2026-08-05. Po drodze dwie poprawki pozycjonowania panelu
+  (zakotwiczenie po zmianie monitora i wyrównanie do lewej krawędzi ikony) — patrz rejestr
+  decyzji; pozycja po zmianach zaakceptowana
+- ⬜ ikona pojawia się sama po restarcie Maca, już z kopii w `/Applications` — przy
+  najbliższym restarcie (domyka też zaległość z etapu 4)
+- ⬜ tydzień codziennego użycia bez utraty danych i bez ręcznego restartu
+
+**Weryfikacja ręczna:** `./scripts/install.sh`, obejrzyj ikonę w Finderze (`/Applications`)
+i w Ustawieniach → Elementy logowania, przejdź smoke test z CLAUDE.md na zainstalowanej
+kopii, zrestartuj Maca i sprawdź, że ikona wróciła sama; potem po prostu używaj przez tydzień.
+
+**Podsumowanie:** [podsumowania/etap_6_podsumowanie.md](podsumowania/etap_6_podsumowanie.md)
 
 ---
 
@@ -200,3 +326,24 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-04 | 0 | Podział na bibliotekę `OneSheetCore` + wykonywalny `OneSheet` | symbole targetu wykonywalnego nie linkują się do programu testowego — bez podziału kod jest nietestowalny |
 | 2026-08-04 | 1 | Zaokrąglenie rogów zostawione systemowi zamiast `cornerRadius = 12` na `NSVisualEffectView` | okno `.titled` jest już przycinane do kształtu okna, a macOS 26 ma własny promień; ręczne 12 pt obcinałoby zawartość wewnątrz zaokrąglonego okna (jasny włos przy krawędzi albo podwójny łuk). Wygląd potwierdzony wizualnie 2026-08-04 — decyzja ostateczna |
 | 2026-08-04 | 1 | Geometria panelu wydzielona do `PanelGeometry` | program testowy działa bez serwera okien; bez wydzielenia pozycjonowanie byłoby weryfikowalne wyłącznie okiem |
+| 2026-08-04 | 2 | `NoteStore.load()` zwraca `LoadedNote` (treść + stan), nie samo `NSAttributedString` | szkic API w specyfikacji powstał przed decyzją o `state.json`; pozycja kursora jest potrzebna dokładnie w tym samym momencie co treść |
+| 2026-08-04 | 2 | Osobne `scheduleSave(_:state:)` i `scheduleStateSave(_:)` | przewijanie długiej notatki generuje dziesiątki zdarzeń na sekundę; wspólna droga oznaczałaby ponowną serializację całego RTFD przy każdym ruchu kółka myszy |
+| 2026-08-04 | 2 | Przewinięcie przywracane przy pierwszym pokazaniu panelu, nie przy wczytaniu notatki | TextKit 2 rozkłada tekst leniwie — dopóki panel nie był pokazany, `NSTextView` ma wysokość kilkuset punktów i przewinięcie o 6000 pt zostaje przycięte |
+| 2026-08-04 | 2 | **Sprostowanie specyfikacji, sekcja 3.3**: aplikacja `.accessory` **ma** działające `NSMenuItem.keyEquivalent` | zdanie o braku menu głównego było błędne i kosztowało działające `⌘V`, `⌘C`, `⌘X`, `⌘A`, `⌘Z`. Aplikacja nie ma **paska** menu, ale `NSApp.mainMenu` istnieje jako obiekt i `sendEvent(_:)` odpytuje go przez `performKeyEquivalent`. Pomiar: bez menu `⌘A` zaznacza 0 z 15 znaków, z menu — 15 z 15 |
+| 2026-08-04 | 2 | Dołożenie `MainMenu` (menu „Edycja") poza pierwotnym zakresem etapu 2 | skróty edycyjne są w zakresie z FUNKCJONALNOSCI sekcja 3, a bez nich nie da się przejść kryterium „wklej fragment z Safari" z klawiatury. Naprawa defektu, nie nowa funkcja |
+| 2026-08-04 | 3 | Etap 3 przepisany z lokalnego monitora `keyDown` na rozszerzenie ukrytego menu głównego | konsekwencja sprostowania powyżej. Zysk: standardowe selektory AppKit zamiast własnego kodu, jedno źródło dla skrótów i menu kontekstowego, oraz zniknięcie ryzyka „monitor przechwytuje skróty innych aplikacji" z sekcji 8 specyfikacji |
+| 2026-08-05 | 3 | Tło panelu jednolite (`NSWindow.backgroundColor = .textBackgroundColor`, okno nieprzezroczyste) zamiast szkła `NSVisualEffectView` — **zmiana decyzji z etapu 1** | rozmycie przepuszczało zawartość spod okna i psuło czytelność notatki, zwłaszcza w jasnym motywie; zgłoszone przez użytkownika przy weryfikacji etapu 3 |
+| 2026-08-05 | 3 | Pozycje formatowania w menu kontekstowym jako podmenu „Formatowanie", nie luzem | systemowe menu kontekstowe `NSTextView` ma kilkanaście pozycji, a AppKit własne grupy (Font, Substitutions) też trzyma w podmenu; źródło pozycji pozostaje jedno (`FormatMenu`) |
+| 2026-08-05 | 3 | `usesAdaptiveColorMappingForDarkAppearance = true` — poza literalnym zakresem etapu | kryterium „po przełączeniu na ciemny motyw cały tekst pozostaje czytelny" jest nie do spełnienia dla tekstu wklejonego z jasnych stron (stały czarny kolor); mapowanie odwraca kolory tylko przy rysowaniu, w pliku zostają oryginalne |
+| 2026-08-05 | 3 | Autozapis formatowania: obok `textDidChange` nasłuch `NSTextStorage.didProcessEditingNotification` filtrowany do edycji samych atrybutów | operacje `NSFontManager` i cofnięcie formatowania mutują `NSTextStorage` bez gwarancji przejścia przez `didChangeText()`; nasłuch magazynu łapie każdą mutację atrybutów niezależnie od drogi, którą przyszła |
+| 2026-08-05 | 4 | **Sprostowanie ryzyka ze specyfikacji, sekcja 8**: „skrót zajęty przez inną aplikację" nie powoduje błędu rejestracji | pomiar: `RegisterEventHotKey` dla `⌥⌘N` w drugim procesie zwraca `noErr`, gdy OneSheet już trzyma tę kombinację — system dopuszcza duplikaty między procesami i sam rozstrzyga doręczanie. `eventHotKeyExistsErr` dotyczy tylko duplikatu w obrębie jednego procesu. Obsługa błędu zostaje jako zabezpieczenie przed awarią samego API |
+| 2026-08-05 | 4 | Ikona `AppIcon.icns` generowana skryptem `scripts/make_icon.swift` (AppKit + `iconutil`), nie ręcznie w edytorze graficznym | na maszynie nie ma Xcode ani narzędzi graficznych; `iconutil` i `NSBitmapImageRep` są częścią systemu, a wersja z generatora wystarcza do etapu 6, w którym powstanie finalna ikona |
+| 2026-08-05 | 5 | Zmienna środowiskowa `ONESHEET_DATA_DIRECTORY` przekierowuje katalog danych (`NoteFileLayout`) | stanowisko testu długiej notatki nie może ryzykować prawdziwej notatki, a podmiana `HOME` nie działa: na macOS 26 `FileManager` wyznacza katalog domowy z bazy użytkowników i ignoruje zmienną — sprawdzone pomiarem. Do tego `open` nie przekazuje zmiennych środowiskowych, stąd stanowisko uruchamia binarkę bezpośrednio |
+| 2026-08-05 | 5 | Korekta ramki panelu przy `NSApplication.didChangeScreenParametersNotification` | dotąd ramka była przycinana tylko przy pokazywaniu panelu; panel stojący otwarty na odłączanym monitorze mógł zostać poza wszystkimi ekranami. Wywoływana jest istniejąca, przetestowana `PanelGeometry.clamped(_:to:)` — zero nowej arytmetyki |
+| 2026-08-05 | 5 | Suita `PanelOpenPerfTests` bramkowana zmienną `ONESHEET_PANEL_PERF=1` | tworzy prawdziwe okno (wymaga serwera okien, miga panelem na ekranie); zwykły przebieg `./scripts/test.sh` ma pozostać bezokienny |
+| 2026-08-05 | 6 | Bez notaryzacji i podpisu Developer ID | aplikacja jest budowana i używana na tej samej maszynie — Gatekeeper nie sprawdza lokalnych buildów; notaryzacja miałaby sens dopiero przy przenoszeniu gotowego pakietu na inny Mac, a wtedy właściwą drogą jest „sklonuj i zbuduj na miejscu" |
+| 2026-08-05 | 6 | `LaunchAtLogin.reconcileOnLaunch()` — naprawa rejestracji autostartu po przeniesieniu pakietu (rozszerzenie zakresu etapu) | pomiar na żywym systemie: wpis w bazie Background Task Management trzyma **ścieżkę** pakietu, `SMAppService.mainApp.status` z nowej lokalizacji dalej zwraca `.enabled` (dopasowanie po identyfikatorze), a ponowna `register()` aktualizuje wpis w miejscu (ten sam UUID, nowy URL). Bez naprawy logowanie po instalacji uruchamiałoby kopię z repozytorium. Warunki: tylko kopia w `/Applications`, tylko przy statusie `.enabled` — kopia robocza nie kradnie autostartu, a decyzja użytkownika z Ustawień systemowych zostaje uszanowana |
+| 2026-08-05 | 6 | Finalna ikona nadal z generatora, kształt maski przez `SwiftUI.RoundedRectangle(style: .continuous).path(in:)` | jedyne publiczne API oddające dokładnie superelipsę Apple; `NSBezierPath(roundedRect:)` daje rogi kołowe, widocznie „twardsze" przy pełnowymiarowej ikonie. Wersja robocza pływała małą kartką na przezroczystym tle — finalna wypełnia siatkę ikon macOS (824/1024, promień ~22,5%) |
+| 2026-08-05 | 6 | Zapamiętana ramka panelu obowiązuje tylko na swoim ekranie; otwarcie na innym monitorze zakotwicza panel na nowo pod ikoną (`PanelGeometry.presentationFrame`) | defekt z weryfikacji dwóch monitorów: `clamped(_:to:)` stosowane bezwarunkowo „dociągało" ramkę z wbudowanego ekranu do najbliższej krawędzi zewnętrznego — panel lądował w rogu zamiast pod klikniętą ikoną. Przycinanie zostaje dla ramki częściowo wystającej (ta sama logika co przy odłączonym monitorze traci sens tylko wtedy, gdy ramka w ogóle nie przecina ekranu docelowego) |
+| 2026-08-05 | 6 | Panel zaczepiany pod ikoną **wyrównaniem do jej lewej krawędzi**, nie wyśrodkowaniem względem niej | zgłoszenie użytkownika przy weryfikacji dwóch monitorów: wyśrodkowany panel odsuwa się w prawo od ikony i wygląda jak położony przypadkowo. Ikona ma zostać nad rogiem panelu, tak jak przy menu rozwijanym z belki. Margines to ten sam `gap` 6 pt, który dzieli panel od belki — ikona jest wtedy wizualnie wewnątrz panelu, a nie dokładnie w narożniku |
+| 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |

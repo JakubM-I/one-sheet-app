@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:one-sheet}",
+            "name": "Debug OneSheetTests",
+            "target": "OneSheetTests",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug OneSheetTests"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:one-sheet}",
+            "name": "Release OneSheetTests",
+            "target": "OneSheetTests",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release OneSheetTests"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:one-sheet}",
+            "name": "Debug OneSheet",
+            "target": "OneSheet",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug OneSheet"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:one-sheet}",
+            "name": "Release OneSheet",
+            "target": "OneSheet",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release OneSheet"
+        }
+    ]
+}
