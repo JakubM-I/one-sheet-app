@@ -146,12 +146,13 @@ Powtórz bez zamykania panelu i z restartem Maca.
   aplikacja startuje i wczytuje istniejącą notatkę
 - ✅ trzy operacje własne (`⌃⌘K`, `⌃⌘L`, `⌃⌘\`) działają na zaznaczeniu i na
   `typingAttributes` — pokryte testami `FormattingCommands`; skróty standardowe
-  (`⌘B`, `⌘I`, `⌘U`, `⌘+`/`⌘-`, `⌘{`/`⌘|`, `⌥⇧⌘V`) ⬜ wymagają ręcznego sprawdzenia
+  (`⌘B`, `⌘I`, `⌘U`, `⌘+`/`⌘-`, `⌘{`/`⌘|`, `⌥⇧⌘V`) ✅ potwierdzone przez użytkownika
+  2026-08-05
 - ✅ każda operacja formatowania wyzwala autozapis — ścieżka `didChangeText()` pokryta
   testem licznika `textDidChange`, a mutacje z jej pominięciem łapie nasłuch
   `NSTextStorage.didProcessEditingNotification` (też pod testem)
 - ✅ jedno `⌘Z` cofa operację własną w całości — pokryte testem; cofanie operacji
-  `NSFontManager` ⬜ do sprawdzenia ręcznie
+  `NSFontManager` ✅ potwierdzone przez użytkownika 2026-08-05
 - ✅ zgodność menu (skróty, wykonawcy, tagi) z tabelą specyfikacji — pod testem `FormatMenu`
 - ✅ przekreślenie i `NSTextList` przeżywają serializację RTFD — pod testem
 - ✅ wklejenie sformatowanego fragmentu zachowuje formatowanie, łącznie z kolorem tła
@@ -160,7 +161,8 @@ Powtórz bez zamykania panelu i z restartem Maca.
   przez użytkownika 2026-08-05
 - ✅ znaczniki listy punktowanej rysują się poprawnie — potwierdzone przez użytkownika
   2026-08-05
-- ⬜ żaden skrót nie działa, gdy panel jest zamknięty (sprawdź `⌘B` w innej aplikacji) — ręcznie
+- ✅ żaden skrót nie działa, gdy panel jest zamknięty (`⌘B` w innej aplikacji) — potwierdzone
+  przez użytkownika 2026-08-05
 
 **Weryfikacja ręczna:** otwórz panel, przejdź skróty z tabeli na zaznaczeniu i przy samym
 kursorze, cofnij każdą operację jednym `⌘Z`, wklej sformatowany fragment z Safari, sprawdź
@@ -194,8 +196,8 @@ i sprawdź, że pogrubienie przeżyło restart.
   bez proszenia o uprawnienia — potwierdzone przez użytkownika 2026-08-05
 - ✅ `SMAppService` przyjął podpis ad-hoc: pierwsze uruchomienie kończy się statusem
   `.enabled` (ryzyko ze specyfikacji sekcja 8 nie zmaterializowało się);
-  ⬜ ikona pojawia się sama po restarcie Maca — użytkownik sprawdzi przy najbliższym
-  restarcie
+  ✅ ikona pojawia się sama po restarcie Maca — potwierdzone przez użytkownika 2026-08-05
+  (szczegóły w liście kontrolnej etapu 6)
 - ✅ nieudana rejestracja skrótu nie wywraca aplikacji — ścieżka błędu pod testami
   `GlobalHotKey`; przy okazji pomiar: konflikt z inną aplikacją **nie** objawia się
   błędem rejestracji (patrz rejestr decyzji), więc komunikat w menu to zabezpieczenie
@@ -299,8 +301,10 @@ monitor: otwórz panel na nim, odłącz kabel, sprawdź, że panel wskoczył na 
   potwierdzone przez użytkownika 2026-08-05. Po drodze dwie poprawki pozycjonowania panelu
   (zakotwiczenie po zmianie monitora i wyrównanie do lewej krawędzi ikony) — patrz rejestr
   decyzji; pozycja po zmianach zaakceptowana
-- ⬜ ikona pojawia się sama po restarcie Maca, już z kopii w `/Applications` — przy
-  najbliższym restarcie (domyka też zaległość z etapu 4)
+- ✅ ikona pojawia się sama po restarcie Maca, już z kopii w `/Applications` — potwierdzone
+  przez użytkownika 2026-08-05. Restart odbył się na wersji z paskiem formatowania:
+  autostart zadziałał, notatka wczytała się w całości, aplikacja wstała prawidłowo.
+  Domyka zaległość z etapu 4
 - ⬜ tydzień codziennego użycia bez utraty danych i bez ręcznego restartu
 
 **Weryfikacja ręczna:** `./scripts/install.sh`, obejrzyj ikonę w Finderze (`/Applications`)
