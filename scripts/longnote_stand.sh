@@ -35,7 +35,7 @@ echo "==> Uruchamianie z ONESHEET_DATA_DIRECTORY=$STAND"
 # Przekierowanie na /dev/null jest konieczne: proces w tle dziedziczy stdout skryptu
 # i bez niego trzymałby otwarty potok każdego, kto czyta wyjście stanowiska.
 ONESHEET_DATA_DIRECTORY="$STAND" \
-	"$ROOT/OneSheet.app/Contents/MacOS/OneSheet" >/dev/null 2>&1 &
+	"$ROOT/build.noindex/OneSheet.app/Contents/MacOS/OneSheet" >/dev/null 2>&1 &
 disown
 
 echo "==> Stanowisko działa. Do sprawdzenia: otwarcie panelu, przewijanie, edycja."

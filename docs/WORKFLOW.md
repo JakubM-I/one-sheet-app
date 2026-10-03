@@ -334,6 +334,27 @@ Sześć przycisków nad polem tekstu, scalonych z pasem do przeciągania okna. *
 **Podsumowanie:**
 [podsumowania/dodatek_pasek_formatowania_podsumowanie.md](podsumowania/dodatek_pasek_formatowania_podsumowanie.md)
 
+### Chowanie po kliknięciu poza notatką — 2026-10-03 ✅ (zweryfikowany)
+
+Opcjonalny tryb szybki: przełącznik w menu ikony, domyślnie wyłączony. **Zmiana zakresu:**
+`FUNKCJONALNOSCI.md` mówiło wcześniej, że panel zamykają „wyłącznie" trzy świadome akcje.
+
+- ✅ `swift build` bez błędów i bez ostrzeżeń kompilatora w kodzie projektu, `./scripts/test.sh`
+  — 81 testów przechodzi (nowe: `OutsideClickMonitorTests`, rozszerzone `StatusItemMenuTests`)
+- ✅ aplikacja startuje z nowym kodem (`./scripts/run.sh`, wpisy w logu)
+- ✅ brak monitu o zgodę Accessibility po włączeniu trybu i otwarciu panelu
+- ✅ tryb wyłączony: klik w inną aplikację i na pulpit nie chowa panelu (bez zmian)
+- ✅ tryb włączony: klik w inne okno, pulpit, belkę i cudzą ikonę statusu chowa panel; klik
+  w panel, pasek formatowania i menu kontekstowe edytora — nie chowa
+- ✅ tryb włączony: klik we własną ikonę chowa i otwiera panel normalnie, bez mrugnięcia
+- ✅ przełączenie trybu przy otwartym panelu działa od razu; ustawienie przeżywa restart
+- ✅ tekst wpisany tuż przed kliknięciem obok jest na dysku po `killall -9 OneSheet`
+
+Punkty od trzeciego w dół potwierdzone przez użytkownika 2026-10-03.
+
+**Podsumowanie:**
+[podsumowania/dodatek_zamykanie_po_kliknieciu_podsumowanie.md](podsumowania/dodatek_zamykanie_po_kliknieciu_podsumowanie.md)
+
 ---
 
 ## Rejestr decyzji
@@ -377,3 +398,5 @@ Każde odstępstwo od specyfikacji dopisujemy tutaj — data, decyzja, powód.
 | 2026-08-05 | 6 | Zapamiętana ramka panelu obowiązuje tylko na swoim ekranie; otwarcie na innym monitorze zakotwicza panel na nowo pod ikoną (`PanelGeometry.presentationFrame`) | defekt z weryfikacji dwóch monitorów: `clamped(_:to:)` stosowane bezwarunkowo „dociągało" ramkę z wbudowanego ekranu do najbliższej krawędzi zewnętrznego — panel lądował w rogu zamiast pod klikniętą ikoną. Przycinanie zostaje dla ramki częściowo wystającej (ta sama logika co przy odłączonym monitorze traci sens tylko wtedy, gdy ramka w ogóle nie przecina ekranu docelowego) |
 | 2026-08-05 | 6 | Panel zaczepiany pod ikoną **wyrównaniem do jej lewej krawędzi**, nie wyśrodkowaniem względem niej | zgłoszenie użytkownika przy weryfikacji dwóch monitorów: wyśrodkowany panel odsuwa się w prawo od ikony i wygląda jak położony przypadkowo. Ikona ma zostać nad rogiem panelu, tak jak przy menu rozwijanym z belki. Margines to ten sam `gap` 6 pt, który dzieli panel od belki — ikona jest wtedy wizualnie wewnątrz panelu, a nie dokładnie w narożniku |
 | 2026-08-04 | — | **Wycofanie decyzji z etapu 0**: własny harness zastąpiony przez swift-testing | ustalenie z etapu 0 było błędne. Command Line Tools **zawierają** swift-testing (`Testing.framework` + plugin makr + `lib_TestingInterop.dylib`); brakowało wyłącznie ścieżek, których SwiftPM szuka w katalogu Xcode. Dokłada je `scripts/test.sh`. Zysk: komunikaty `#expect` z wyliczonymi podwyrażeniami, testy tabelaryczne (`arguments:`) pod etap 2, minus 100 linii własnego kodu. Xcode nadal niepotrzebny |
+| 2026-10-03 | po 6 | Opcjonalny tryb „Chowaj po kliknięciu poza notatką" (domyślnie wyłączony) — **zmiana zakresu**, FUNKCJONALNOSCI sekcja 2 mówiła „zamykają go wyłącznie" trzy akcje | decyzja użytkownika: tryb stały zostaje domyślny (podgląd notatki, kopiowanie kilku rzeczy po kolei), ale do szybkich zapisków wygodniejsze jest chowanie jak w menu systemowym. Przełącznik w menu ikony, nie w oknie ustawień — „okno preferencji" zostaje poza zakresem. Mechanizm: globalny monitor myszy (bez zgody Accessibility, nie widzi kliknięć we własną ikonę, więc nie dubluje `toggle`); `windowDidResignKey` odrzucone, bo przy `.nonactivatingPanel` nie jest wiarygodnym sygnałem. Chowa wyłącznie kliknięcie — `⌘Tab` i zmiana biurka nie |
+| 2026-10-03 | po 6 | Robocza kopia pakietu składana w `build.noindex/OneSheet.app` zamiast w katalogu głównym repozytorium | Spotlight indeksował oba pakiety i pokazywał dwa „OneSheet" — drugi uruchamiał build z repozytorium zamiast wersji z `/Applications`. Katalogi z końcówką `.noindex` Spotlight pomija |

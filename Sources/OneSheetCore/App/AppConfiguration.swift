@@ -63,6 +63,10 @@ enum AppConfiguration {
         /// Wyłącznik skrótu globalnego. Brak wartości znaczy „włączony".
         static let hotKeyEnabled = "hotKeyEnabled"
 
+        /// Tryb szybki: kliknięcie myszą poza panelem chowa go. Brak wartości znaczy
+        /// „wyłączony" — domyślnie panel chowają tylko świadome akcje (FUNKCJONALNOSCI, sekcja 2).
+        static let hidesOnClickOutside = "hidesOnClickOutside"
+
         /// Ścieżka pakietu, z której ostatnio udała się rejestracja autostartu.
         /// Wpis login item w systemie trzyma ścieżkę, nie identyfikator — po przeniesieniu
         /// aplikacji (instalacja do `/Applications`) porównanie z tą wartością wykrywa

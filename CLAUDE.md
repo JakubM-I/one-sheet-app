@@ -25,7 +25,7 @@ Pełne dokumenty:
 ```bash
 swift build                    # kompilacja
 ./scripts/test.sh              # testy (swift-testing) — nie `swift test`, patrz niżej
-./scripts/bundle.sh [debug|release]   # złożenie OneSheet.app + podpis ad-hoc
+./scripts/bundle.sh [debug|release]   # złożenie build.noindex/OneSheet.app + podpis ad-hoc
 ./scripts/run.sh [debug|release]      # bundle + zabicie starej instancji + uruchomienie
 ./scripts/install.sh           # bundle release + podmiana kopii w /Applications + uruchomienie
 killall OneSheet               # zatrzymanie (do etapu 4 nie ma pozycji „Zakończ")
@@ -139,4 +139,4 @@ Reszta wymaga weryfikacji ręcznej — po każdym etapie przejdź listę kontrol
 - Nie dodawaj okna preferencji „na wszelki wypadek".
 - Nie wprowadzaj synchronizacji iCloud, eksportu, szyfrowania, historii wersji.
 - Nie zmieniaj formatu pliku notatki bez ścieżki migracji i zgody.
-- Nie commituj `.build/`, `OneSheet.app` ani plików z `~/Library/Application Support/OneSheet/`.
+- Nie commituj `.build/`, `build.noindex/` ani plików z `~/Library/Application Support/OneSheet/`.

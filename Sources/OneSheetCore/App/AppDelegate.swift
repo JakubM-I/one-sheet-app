@@ -10,6 +10,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
     private let noteStore = NoteStore()
     private let launchAtLogin = LaunchAtLogin()
     private var globalHotKey: HotKeyRegistering?
+    private let outsideClickMonitor = OutsideClickMonitor()
 
     /// Komunikat o niedostępnym skrócie globalnym — pokazywany w menu kontekstowym.
     /// `nil`, gdy skrót został zarejestrowany albo jest wyłączony w ustawieniach.
@@ -46,6 +47,7 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // od środka; to druga warstwa tej samej ochrony.)
         loadNote(into: editor)
         connectAutosave(for: editor, panel: panel)
+        connectOutsideClickDismissal(for: panel)
         observeSystemEvents()
 
         let controller = StatusItemController()
@@ -92,6 +94,28 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         panel.onHide = { [weak self] in
             self?.noteStore.flush()
+            self?.outsideClickMonitor.stop()
+        }
+    }
+
+    // MARK: - Chowanie po kliknięciu poza panelem
+
+    private var hidesOnClickOutside: Bool {
+        get { UserDefaults.standard.bool(forKey: AppConfiguration.Defaults.hidesOnClickOutside) }
+        set { UserDefaults.standard.set(newValue, forKey: AppConfiguration.Defaults.hidesOnClickOutside) }
+    }
+
+    /// Monitor słucha tylko wtedy, gdy panel jest widoczny i tryb szybki włączony —
+    /// przy schowanym panelu żadne kliknięcie w systemie nie budzi aplikacji.
+    /// Zdejmowanie monitora siedzi w `onHide` (`connectAutosave`), bo każda droga
+    /// schowania — ikona, `Esc`, skrót, klik poza panelem — przechodzi przez `hide()`.
+    private func connectOutsideClickDismissal(for panel: NotePanel) {
+        outsideClickMonitor.onOutsideClick = { [weak panel] in
+            panel?.hide()
+        }
+        panel.onPresent = { [weak self] in
+            guard let self, hidesOnClickOutside else { return }
+            outsideClickMonitor.start()
         }
     }
 
@@ -155,16 +179,29 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             model.launchAtLoginNotice = "Autostart niedostępny: \(failure)"
         }
         model.hotKeyNotice = hotKeyNotice
+        model.hidesOnClickOutside = hidesOnClickOutside
 
         let menu = StatusItemMenu.makeMenu(
             model: model,
             target: self,
-            toggleLaunchAtLoginAction: #selector(toggleLaunchAtLogin)
+            toggleLaunchAtLoginAction: #selector(toggleLaunchAtLogin),
+            toggleHidesOnClickOutsideAction: #selector(toggleHidesOnClickOutside)
         )
         statusItemController?.showMenu(menu)
     }
 
     @objc private func toggleLaunchAtLogin() {
         launchAtLogin.toggle()
+    }
+
+    /// Zmiana działa od razu, także na panelu, który właśnie stoi otwarty.
+    @objc private func toggleHidesOnClickOutside() {
+        hidesOnClickOutside.toggle()
+        Log.app.info("Chowanie po kliknięciu poza panelem: \(self.hidesOnClickOutside, privacy: .public)")
+        if hidesOnClickOutside, notePanel?.isVisible == true {
+            outsideClickMonitor.start()
+        } else if !hidesOnClickOutside {
+            outsideClickMonitor.stop()
+        }
     }
 }

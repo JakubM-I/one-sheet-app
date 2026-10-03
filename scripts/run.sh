@@ -22,7 +22,7 @@ fi
 echo "==> Uruchamianie"
 # `-n` wymusza nową instancję zamiast uaktywnienia już działającej kopii
 # zarejestrowanej wcześniej w LaunchServices (np. tej z /Applications).
-open -n "$ROOT/OneSheet.app"
+open -n "$ROOT/build.noindex/OneSheet.app"
 
 echo "==> Ikona powinna być w prawej części górnej belki."
 # Uwaga na dwie pułapki w tym poleceniu:

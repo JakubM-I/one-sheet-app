@@ -12,6 +12,9 @@ final class NotePanel: NSPanel {
     /// stać otwarty tygodniami — ale jest to moment, w którym zapis na pewno wypada zrobić.
     var onHide: (() -> Void)?
 
+    /// Wywoływane po pokazaniu panelu, gdy jest już oknem kluczowym.
+    var onPresent: (() -> Void)?
+
     private let editorViewController: EditorViewController
 
     /// Czy okno ma już ustaloną pozycję — z `UserDefaults` albo z pierwszego otwarcia.
@@ -65,6 +68,7 @@ final class NotePanel: NSPanel {
         orderFrontRegardless()
         makeKey()
         editorViewController.focusText()
+        onPresent?()
 
         let elapsed = start.duration(to: .now)
         let milliseconds = Double(elapsed.components.seconds) * 1000

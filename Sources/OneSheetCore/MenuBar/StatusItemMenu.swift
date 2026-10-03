@@ -18,11 +18,19 @@ enum StatusItemMenu {
         /// albo oczekiwanie na zgodę w Ustawieniach systemowych. `nil` — bez linii.
         var launchAtLoginNotice: String?
 
+        /// Tryb szybki: kliknięcie poza panelem go chowa (`AppConfiguration.Defaults.hidesOnClickOutside`).
+        var hidesOnClickOutside = false
+
         /// Komunikat o niedostępnym skrócie globalnym; `nil`, gdy skrót działa.
         var hotKeyNotice: String?
     }
 
-    static func makeMenu(model: Model, target: AnyObject?, toggleLaunchAtLoginAction: Selector) -> NSMenu {
+    static func makeMenu(
+        model: Model,
+        target: AnyObject?,
+        toggleLaunchAtLoginAction: Selector,
+        toggleHidesOnClickOutsideAction: Selector
+    ) -> NSMenu {
         let menu = NSMenu()
 
         let launchItem = NSMenuItem(
@@ -37,6 +45,16 @@ enum StatusItemMenu {
         if let notice = model.launchAtLoginNotice {
             menu.addItem(makeNotice(notice))
         }
+
+        let hidesItem = NSMenuItem(
+            title: "Chowaj po kliknięciu poza notatką",
+            action: toggleHidesOnClickOutsideAction,
+            keyEquivalent: ""
+        )
+        hidesItem.target = target
+        hidesItem.state = model.hidesOnClickOutside ? .on : .off
+        menu.addItem(hidesItem)
+
         if let notice = model.hotKeyNotice {
             menu.addItem(.separator())
             menu.addItem(makeNotice(notice))

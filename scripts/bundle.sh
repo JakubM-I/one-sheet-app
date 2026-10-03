@@ -11,7 +11,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIGURATION="${1:-release}"
-APP="$ROOT/OneSheet.app"
+# Końcówka `.noindex` wyłącza katalog ze Spotlighta. Bez niej robocza kopia pojawiała się
+# w wynikach obok zainstalowanej w /Applications — dwa „OneSheet", z których drugi
+# uruchamia build z repozytorium.
+BUILD_DIR="$ROOT/build.noindex"
+APP="$BUILD_DIR/OneSheet.app"
 
 echo "==> Budowanie ($CONFIGURATION)"
 swift build --package-path "$ROOT" -c "$CONFIGURATION"
@@ -26,6 +30,7 @@ fi
 
 echo "==> Składanie pakietu"
 rm -rf "$APP"
+mkdir -p "$BUILD_DIR"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$EXECUTABLE" "$APP/Contents/MacOS/OneSheet"
