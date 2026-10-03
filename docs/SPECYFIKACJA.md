@@ -95,13 +95,24 @@ kliknięcie ikony w belce, globalny skrót. Nie obsługujemy `windowDidResignKey
 `windowDidResignMain` jako zamknięcia; panel może stać otwarty obok innych aplikacji dowolnie
 długo. Zamknięcie = `orderOut(nil)`, panel nie jest niszczony ani odtwarzany.
 
+**Tryb szybki (zmiana 2026-10-03, opcjonalny)** — przełącznik „Chowaj po kliknięciu poza
+notatką" w menu ikony (`UserDefaults`: `hidesOnClickOutside`, brak wartości = wyłączony) dokłada
+czwartą akcję: kliknięcie myszą poza panelem. Mechanizm: `OutsideClickMonitor` opakowujący
+`NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown])`.
+Monitor globalny widzi wyłącznie zdarzenia dostarczane innym procesom, więc kliknięcia w panel
+i we własną ikonę w belce do niego nie trafiają — klik w ikonę obsługuje dalej sam `toggle`.
+Monitor jest instalowany w `NotePanel.onPresent` i zdejmowany w `onHide`; przy schowanym panelu
+nic nie słucha. `windowDidResignKey` odpada nadal: przy `.nonactivatingPanel` aplikacja nie jest
+aktywna, więc utrata statusu okna kluczowego nie jest wiarygodnym sygnałem kliknięcia obok.
+
 Konsekwencja dla zapisu: schowanie panelu przestaje być wiarygodnym momentem zrzutu na dysk —
 notatnik potrafi być otwarty tygodniami. Głównym zabezpieczeniem staje się debounce
 i `flush()` na `willResignActive` (sekcja 3.4), a nie zamknięcie panelu.
 
 #### Skrót globalny
 
-`NSEvent.addGlobalMonitorForEvents` wymaga uprawnień Accessibility — odpada. Używamy
+`NSEvent.addGlobalMonitorForEvents` dla zdarzeń **klawiatury** wymaga uprawnień Accessibility —
+odpada (dla zdarzeń myszy zgoda nie jest potrzebna, z czego korzysta tryb szybki wyżej). Używamy
 `RegisterEventHotKey` z Carbon (`HIToolbox`), które działa bez żadnych uprawnień i jest wciąż
 wspieranym API na macOS 26. Domyślnie `⌥⌘N` (`kVK_ANSI_N` + `optionKey | cmdKey`).
 Kod trzymany za protokołem `HotKeyRegistering`, aby dało się go podmienić bez ruszania reszty.
@@ -302,11 +313,12 @@ pakietu `.app` z `Info.plist`. Stąd dwuetapowy proces.
 `scripts/bundle.sh`:
 
 1. `swift build -c release --arch arm64`
-2. Utworzenie struktury `OneSheet.app/Contents/{MacOS,Resources}`
+2. Utworzenie struktury `build.noindex/OneSheet.app/Contents/{MacOS,Resources}` — końcówka
+   `.noindex` wyłącza roboczą kopię ze Spotlighta (zmiana 2026-10-03)
 3. Kopia binarki → `Contents/MacOS/OneSheet`
 4. Kopia `Sources/OneSheet/Resources/Info.plist` → `Contents/Info.plist`
 5. Kopia `AppIcon.icns` → `Contents/Resources/`
-6. `codesign --force --sign - --options runtime OneSheet.app`
+6. `codesign --force --sign - --options runtime build.noindex/OneSheet.app`
 
 Kluczowe wpisy `Info.plist`: `LSUIElement = true`, `LSMinimumSystemVersion = 26.0`,
 `CFBundleIdentifier = com.kubam.OneSheet`, `NSHumanReadableCopyright`, `CFBundleIconFile = AppIcon`.

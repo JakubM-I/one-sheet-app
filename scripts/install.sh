@@ -33,7 +33,7 @@ fi
 
 echo "==> Instalowanie do $TARGET"
 rm -rf "$TARGET"
-ditto "$ROOT/OneSheet.app" "$TARGET"
+ditto "$ROOT/build.noindex/OneSheet.app" "$TARGET"
 
 echo "==> Uruchamianie"
 open "$TARGET"

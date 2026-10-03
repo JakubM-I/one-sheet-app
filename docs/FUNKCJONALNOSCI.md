@@ -24,7 +24,7 @@ tam jest.
 - Kliknięcie lewym przyciskiem rozwija panel z notatnikiem tuż pod ikoną.
 - Ponowne kliknięcie ikony lub `Esc` — panel się chowa.
 - Kliknięcie prawym przyciskiem (lub długie przytrzymanie) otwiera małe menu:
-  „Uruchamiaj przy logowaniu", „Zakończ".
+  „Uruchamiaj przy logowaniu", „Chowaj po kliknięciu poza notatką", „Zakończ".
 - Ikona jest szablonowa (template) — sama dostosowuje się do jasnego i ciemnego motywu
   oraz do przezroczystości belki.
 
@@ -41,6 +41,12 @@ tam jest.
   przełączenie okna czy przejście na inne biurko (Space) nie chowa notatnika — pływa on nad
   innymi oknami i czeka. Zamykają go wyłącznie: ponowne kliknięcie ikony, `Esc` oraz globalny
   skrót klawiszowy.
+- **Tryb szybki — opcjonalny, domyślnie wyłączony.** Przełącznik „Chowaj po kliknięciu poza
+  notatką" w menu ikony sprawia, że panel chowa się także po kliknięciu myszą gdziekolwiek poza
+  nim (inne okno, pulpit, belka) — jak menu systemowe. `⌘Tab` i zmiana biurka nadal niczego nie
+  chowają. Koszt: przeciągnięcia tekstu z innej aplikacji do panelu w tym trybie nie da się
+  wykonać (pierwsze kliknięcie w źródło chowa panel) — kopiowanie i wklejanie działa normalnie.
+  To jedyna opcja zachowania aplikacji i żyje w menu ikony, nie w oknie ustawień.
 
 ### 3. Edycja treści
 

@@ -5,6 +5,7 @@ Package.resolved
 
 # Artefakty budowania
 OneSheet.app/
+build.noindex/
 *.dSYM/
 
 # macOS
